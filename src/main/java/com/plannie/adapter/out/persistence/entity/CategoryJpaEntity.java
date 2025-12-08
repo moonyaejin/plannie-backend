@@ -27,9 +27,6 @@ public class CategoryJpaEntity {
     @Column(name = "color", length = 200)
     private String color;
 
-    @Version
-    private Long version;
-
     @Builder
     public CategoryJpaEntity(Long userId, String categoryName, String color) {
         this.userId = userId;
