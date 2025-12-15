@@ -24,6 +24,7 @@ public class CategoryMapper {
     public CategoryJpaEntity toEntity(Category category) {
         return CategoryJpaEntity.builder()
                 .userId(category.getUserId())
+                .id(category.getId())
                 .categoryName(category.getName())
                 .color(category.getColor())
                 .build();

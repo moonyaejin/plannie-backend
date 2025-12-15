@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "categories", indexes = {
         @Index(name = "idx_category_user_id", columnList = "user_id")
@@ -28,7 +30,8 @@ public class CategoryJpaEntity {
     private String color;
 
     @Builder
-    public CategoryJpaEntity(Long userId, String categoryName, String color) {
+    public CategoryJpaEntity(Long id, Long userId, String categoryName, String color) {
+        this.id = id;
         this.userId = userId;
         this.categoryName = categoryName;
         this.color = color;

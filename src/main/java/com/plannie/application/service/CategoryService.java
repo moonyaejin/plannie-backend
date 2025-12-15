@@ -64,6 +64,10 @@ public class CategoryService implements CreateCategoryUseCase,
 
     // ==================== GetCategoryUseCase 구현 ====================
 
+    /**
+     * 카테고리 목록 조회
+     * - 기본 카테고리 + 유저의 커스텀 카테고리 반환
+     */
     @Override
     public List<Category> getCategories(Long userId) {
         return loadCategoryPort.findAllByUserIdOrDefault(userId);
@@ -87,6 +91,10 @@ public class CategoryService implements CreateCategoryUseCase,
 
     // ==================== DeleteCategoryUseCase 구현 ====================
 
+    /**
+     * 카테고리 삭제
+     * - 본인이 생성한 카테고리만 삭제 가능
+     */
     @Override
     @Transactional
     public void deleteCategory(Long categoryId, Long userId) {
