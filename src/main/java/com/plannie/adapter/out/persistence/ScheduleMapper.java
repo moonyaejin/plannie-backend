@@ -1,8 +1,12 @@
 package com.plannie.adapter.out.persistence;
 
+import com.plannie.adapter.out.persistence.entity.ScheduleCompletionEntity;
+import com.plannie.adapter.out.persistence.entity.ScheduleExceptionEntity;
 import com.plannie.adapter.out.persistence.entity.ScheduleJpaEntity;
 import com.plannie.domain.schedule.RepeatRule;
 import com.plannie.domain.schedule.Schedule;
+import com.plannie.domain.schedule.ScheduleCompletion;
+import com.plannie.domain.schedule.ScheduleException;
 import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
@@ -142,6 +146,39 @@ public class ScheduleMapper {
         return rule.getDaysOfWeek().stream()
                 .map(this::toShortDay)
                 .collect(Collectors.joining(","));
+    }
+
+    public ScheduleException toDomain(ScheduleExceptionEntity entity) {
+        if (entity == null) return null;
+
+        return ScheduleException.builder()
+                .id(entity.getId())
+                .scheduleId(entity.getScheduleId())
+                .exceptionDate(entity.getExceptionDate())
+                .exceptionType(mapExceptionType(entity.getExceptionType()))
+                .modifiedTitle(entity.getModifiedTitle())
+                .modifiedMemo(entity.getModifiedMemo())
+                .modifiedStartTime(entity.getModifiedStartTime())
+                .modifiedEndTime(entity.getModifiedEndTime())
+                .build();
+    }
+
+    private ScheduleException.ExceptionType mapExceptionType(ScheduleExceptionEntity.ExceptionType type) {
+        return switch (type) {
+            case DELETED -> ScheduleException.ExceptionType.DELETED;
+            case MODIFIED -> ScheduleException.ExceptionType.MODIFIED;
+        };
+    }
+
+    public ScheduleCompletion toDomain(ScheduleCompletionEntity entity) {
+        if (entity == null) return null;
+
+        return ScheduleCompletion.builder()
+                .id(entity.getId())
+                .scheduleId(entity.getScheduleId())
+                .completionDate(entity.getCompletionDate())
+                .completed(entity.isCompleted())
+                .build();
     }
 
     private String toShortDay(DayOfWeek day) {
