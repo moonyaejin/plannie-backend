@@ -14,6 +14,8 @@ public interface UpdateScheduleUseCase {
 
     void toggleComplete(Long scheduleId, Long userId);
 
+    void toggleRecurringComplete(Long scheduleId, LocalDate date, Long userId);
+
     record UpdateScheduleCommand(
             Long scheduleId,
             Long userId,

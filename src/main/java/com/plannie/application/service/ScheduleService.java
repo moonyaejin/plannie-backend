@@ -1,5 +1,6 @@
 package com.plannie.application.service;
 
+import com.plannie.adapter.in.web.dto.ScheduleView;
 import com.plannie.application.port.in.CreateScheduleUseCase;
 import com.plannie.application.port.in.DeleteScheduleUseCase;
 import com.plannie.application.port.in.GetScheduleUseCase;
@@ -11,6 +12,7 @@ import com.plannie.common.exception.ErrorCode;
 import com.plannie.common.exception.ScheduleConflictException;
 import com.plannie.domain.schedule.RepeatRule;
 import com.plannie.domain.schedule.Schedule;
+import com.plannie.domain.schedule.ScheduleException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,28 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Schedule Service
- *
- * 역할:
- * - CreateScheduleUseCase, GetScheduleUseCase, UpdateScheduleUseCase, DeleteScheduleUseCase 구현
- * - 비즈니스 로직 처리 (유효성 검증, 충돌 감지 등)
- * - 트랜잭션 관리
- *
- * 의존성:
- * - Port 인터페이스만 의존 (LoadSchedulePort, SaveSchedulePort)
- * - JPA Repository를 직접 사용하지 않음!
- * - 이렇게 하면 테스트할 때 Port를 Mock으로 쉽게 대체 가능
- */
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)  // 기본적으로 읽기 전용 (조회 성능 최적화)
+@Transactional(readOnly = true)
 public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCase,
         UpdateScheduleUseCase, DeleteScheduleUseCase {
 
@@ -48,17 +34,8 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     // ==================== CreateScheduleUseCase 구현 ====================
 
-    /**
-     * 일정 생성
-     *
-     * 처리 순서:
-     * 1. 시간 유효성 검증 (시작 시간 < 종료 시간)
-     * 2. 시간 충돌 검사 (같은 시간대에 이미 일정이 있는지)
-     * 3. 도메인 객체 생성
-     * 4. DB 저장
-     */
     @Override
-    @Transactional  // 쓰기 작업이므로 readOnly = false
+    @Transactional
     public Schedule createSchedule(CreateScheduleCommand command) {
         // 1. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
@@ -82,7 +59,12 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
                 .endTime(command.endTime())
                 .completed(false)
                 .categoryId(command.categoryId())
-                .repeatRule(createRepeatRule(command.repeatType(), command.repeatDays()))
+                .repeatRule(createRepeatRule(
+                        command.repeatType(),
+                        command.repeatDays(),
+                        command.repeatEndDate(),
+                        command.startDate()  // startDate 전달
+                ))
                 .build();
 
         // 4. DB 저장 및 반환
@@ -91,54 +73,154 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     // ==================== GetScheduleUseCase 구현 ====================
 
-    /**
-     * 일정 단건 조회
-     * - userId를 함께 검증해서 다른 사용자의 일정은 조회 불가
-     */
     @Override
     public Optional<Schedule> getSchedule(Long scheduleId, Long userId) {
         return loadSchedulePort.findByIdAndUserId(scheduleId, userId);
     }
 
-    /**
-     * 특정 날짜의 일정 목록 조회
-     */
     @Override
     public List<Schedule> getSchedulesByDate(Long userId, LocalDate date) {
-        return loadSchedulePort.findByUserIdAndDate(userId, date);
+        // 1. 해당 날짜 시작 일정
+        List<Schedule> schedules = loadSchedulePort.findByUserIdAndDate(userId, date);
+
+        // 2. 반복 일정 중 해당 날짜에 적용되는 것
+        List<Schedule> repeatingSchedules = loadSchedulePort.findRepeatingSchedules(userId);
+
+        List<Schedule> applicableRepeating = repeatingSchedules.stream()
+                .filter(s -> s.getRepeatRule().appliesTo(date))
+                .toList();
+
+        // 3. 합쳐서 반환
+        List<Schedule> result = new ArrayList<>(schedules);
+        result.addAll(applicableRepeating);
+        return result;
     }
 
-    /**
-     * 월별 일정 목록 조회
-     * - 해당 월의 1일부터 말일까지 조회
-     */
     @Override
-    public List<Schedule> getSchedulesByMonth(Long userId, int year, int month) {
+    public List<ScheduleView> getSchedulesByMonth(Long userId, int year, int month) {
         LocalDate startDate = LocalDate.of(year, month, 1);
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
 
-        return loadSchedulePort.findByUserIdAndDateRange(userId, startDate, endDate);
+        // 1. 일회성 일정 조회
+        List<Schedule> oneTimeSchedules = loadSchedulePort.findOneTimeSchedulesByDateRange(
+                userId, startDate, endDate
+        );
+
+        // 2. 반복 일정 조회
+        List<Schedule> repeatingSchedules = loadSchedulePort.findRepeatingSchedules(userId);
+
+        // 3. 예외사항과 완료 상태 조회
+        List<Long> scheduleIds = repeatingSchedules.stream()
+                .map(Schedule::getId)
+                .toList();
+
+        Map<String, ScheduleException> exceptions = scheduleIds.isEmpty()
+                ? new HashMap<>()
+                : loadSchedulePort.findExceptions(scheduleIds, startDate, endDate);
+
+        Map<String, Boolean> completions = scheduleIds.isEmpty()
+                ? new HashMap<>()
+                : loadSchedulePort.findCompletions(scheduleIds, startDate, endDate);
+
+        // 4. 일회성 일정을 View로 변환
+        List<ScheduleView> views = new ArrayList<>();
+        for (Schedule schedule : oneTimeSchedules) {
+            views.add(ScheduleView.builder()
+                    .id(schedule.getId())
+                    .instanceId(schedule.getId().toString())
+                    .title(schedule.getTitle())
+                    .memo(schedule.getMemo())
+                    .startDate(schedule.getStartDate())
+                    .endDate(schedule.getEndDate())
+                    .startTime(schedule.getStartTime())
+                    .endTime(schedule.getEndTime())
+                    .completed(schedule.isCompleted())
+                    .categoryId(schedule.getCategoryId())
+                    .isRecurring(false)
+                    .repeatType("NONE")
+                    .build());
+        }
+
+        // 5. 반복 일정 확장
+        for (Schedule repeating : repeatingSchedules) {
+            List<ScheduleView> expandedViews = expandRepeatScheduleToViews(
+                    repeating, startDate, endDate, exceptions, completions
+            );
+            views.addAll(expandedViews);
+        }
+
+        // 6. 날짜순 정렬
+        views.sort((a, b) -> {
+            int dateCompare = a.getStartDate().compareTo(b.getStartDate());
+            if (dateCompare != 0) return dateCompare;
+            return a.getStartTime().compareTo(b.getStartTime());
+        });
+
+        return views;
     }
 
-    /**
-     * 기간별 일정 목록 조회
-     */
     @Override
-    public List<Schedule> getSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
-        return loadSchedulePort.findByUserIdAndDateRange(userId, startDate, endDate);
+    public List<ScheduleView> getSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        // 1. 일회성 일정 조회
+        List<Schedule> oneTimeSchedules = loadSchedulePort.findOneTimeSchedulesByDateRange(
+                userId, startDate, endDate
+        );
+
+        // 2. 반복 일정 조회
+        List<Schedule> repeatingSchedules = loadSchedulePort.findRepeatingSchedules(userId);
+
+        // 3. 예외사항과 완료 상태 조회
+        List<Long> scheduleIds = repeatingSchedules.stream()
+                .map(Schedule::getId)
+                .toList();
+
+        Map<String, ScheduleException> exceptions = scheduleIds.isEmpty()
+                ? new HashMap<>()
+                : loadSchedulePort.findExceptions(scheduleIds, startDate, endDate);
+
+        Map<String, Boolean> completions = scheduleIds.isEmpty()
+                ? new HashMap<>()
+                : loadSchedulePort.findCompletions(scheduleIds, startDate, endDate);
+
+        // 4. 일회성 일정을 View로 변환
+        List<ScheduleView> views = new ArrayList<>();
+        for (Schedule schedule : oneTimeSchedules) {
+            views.add(ScheduleView.builder()
+                    .id(schedule.getId())
+                    .instanceId(schedule.getId().toString())
+                    .title(schedule.getTitle())
+                    .memo(schedule.getMemo())
+                    .startDate(schedule.getStartDate())
+                    .endDate(schedule.getEndDate())
+                    .startTime(schedule.getStartTime())
+                    .endTime(schedule.getEndTime())
+                    .completed(schedule.isCompleted())
+                    .categoryId(schedule.getCategoryId())
+                    .isRecurring(false)
+                    .repeatType("NONE")
+                    .build());
+        }
+
+        // 5. 반복 일정 확장
+        for (Schedule repeating : repeatingSchedules) {
+            List<ScheduleView> expandedViews = expandRepeatScheduleToViews(
+                    repeating, startDate, endDate, exceptions, completions
+            );
+            views.addAll(expandedViews);
+        }
+
+        // 6. 날짜순 정렬
+        views.sort((a, b) -> {
+            int dateCompare = a.getStartDate().compareTo(b.getStartDate());
+            if (dateCompare != 0) return dateCompare;
+            return a.getStartTime().compareTo(b.getStartTime());
+        });
+
+        return views;
     }
 
     // ==================== UpdateScheduleUseCase 구현 ====================
 
-    /**
-     * 일정 수정
-     *
-     * 처리 순서:
-     * 1. 기존 일정 조회 (본인 일정인지 확인)
-     * 2. 시간 유효성 검증
-     * 3. 도메인 객체 업데이트
-     * 4. DB 저장
-     */
     @Override
     @Transactional
     public Schedule updateSchedule(UpdateScheduleCommand command) {
@@ -150,7 +232,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         // 2. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
 
-        // 3. 도메인 객체 업데이트 (도메인 메서드 사용)
+        // 3. 도메인 객체 업데이트
         existingSchedule.update(
                 command.title(),
                 command.memo(),
@@ -165,38 +247,35 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         return saveSchedulePort.save(existingSchedule);
     }
 
-    /**
-     * 일정 완료 토글
-     * - 체크박스 ON/OFF 기능
-     * - 기존 Express API: PUT /planner/{id} with { check_box: true/false }
-     */
     @Override
     @Transactional
     public void toggleComplete(Long scheduleId, Long userId) {
+        // 권한 확인
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
 
-        // 도메인 메서드로 상태 변경
-        if (schedule.isCompleted()) {
-            schedule.uncomplete();
-        } else {
-            schedule.complete();
-        }
+        // 일회성 일정 완료 토글
+        saveSchedulePort.toggleComplete(scheduleId);
+    }
 
-        saveSchedulePort.save(schedule);
+    // 반복 일정의 특정 날짜 완료 토글
+    @Transactional
+    public void toggleRecurringComplete(Long scheduleId, LocalDate date, Long userId) {
+        // 권한 확인
+        Schedule schedule = loadSchedulePort
+                .findByIdAndUserId(scheduleId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        // 반복 일정의 특정 날짜 완료 토글
+        saveSchedulePort.toggleCompletion(scheduleId, date);
     }
 
     // ==================== DeleteScheduleUseCase 구현 ====================
 
-    /**
-     * 일정 삭제
-     * - 본인 일정만 삭제 가능
-     */
     @Override
     @Transactional
     public void deleteSchedule(Long scheduleId, Long userId) {
-        // 존재 여부 + 권한 확인
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
@@ -204,56 +283,96 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         saveSchedulePort.delete(schedule.getId());
     }
 
-    // ==================== 비즈니스 로직 (Private Methods) ====================
+    // ==================== Private Helper Methods ====================
 
-    /**
-     * 시간 유효성 검증
-     * - 시작 시간이 종료 시간보다 늦으면 안 됨
-     */
+    private List<ScheduleView> expandRepeatScheduleToViews(Schedule schedule,
+                                                           LocalDate monthStart,
+                                                           LocalDate monthEnd,
+                                                           Map<String, ScheduleException> exceptions,
+                                                           Map<String, Boolean> completions) {
+        List<ScheduleView> views = new ArrayList<>();
+        RepeatRule rule = schedule.getRepeatRule();
+
+        LocalDate currentDate = schedule.getStartDate().isBefore(monthStart)
+                ? monthStart : schedule.getStartDate();
+
+        LocalDate repeatEndDate = rule.getEndDate() != null && rule.getEndDate().isBefore(monthEnd)
+                ? rule.getEndDate() : monthEnd;
+
+        while (!currentDate.isAfter(repeatEndDate)) {
+            if (rule.appliesTo(currentDate)) {
+                String key = schedule.getId() + "_" + currentDate;
+
+                // 삭제된 날짜는 건너뛰기
+                ScheduleException exception = exceptions.get(key);
+                if (exception != null && exception.isDeleted()) {
+                    currentDate = currentDate.plusDays(1);
+                    continue;
+                }
+
+                // View 생성 (수정사항, 완료상태 반영)
+                ScheduleView view = ScheduleView.builder()
+                        .id(schedule.getId())
+                        .instanceId(key)
+                        .title(exception != null && exception.getModifiedTitle() != null
+                                ? exception.getModifiedTitle() : schedule.getTitle())
+                        .memo(exception != null && exception.getModifiedMemo() != null
+                                ? exception.getModifiedMemo() : schedule.getMemo())
+                        .startDate(currentDate)
+                        .endDate(currentDate)
+                        .startTime(exception != null && exception.getModifiedStartTime() != null
+                                ? exception.getModifiedStartTime() : schedule.getStartTime())
+                        .endTime(exception != null && exception.getModifiedEndTime() != null
+                                ? exception.getModifiedEndTime() : schedule.getEndTime())
+                        .completed(completions.getOrDefault(key, false))
+                        .categoryId(schedule.getCategoryId())
+                        .isRecurring(true)
+                        .repeatType(rule.getType().name())
+                        .repeatDays(rule.getDaysOfWeek() != null
+                                ? rule.getDaysOfWeek().stream()
+                                .map(day -> day.name().substring(0, 3))
+                                .collect(Collectors.joining(","))
+                                : null)
+                        .build();
+
+                views.add(view);
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return views;
+    }
+
     private void validateTimeRange(LocalTime startTime, LocalTime endTime) {
         if (startTime.isAfter(endTime)) {
             throw new BusinessException(ErrorCode.INVALID_TIME_RANGE);
         }
     }
 
-    /**
-     * 일정 충돌 검사
-     * - 같은 날짜, 겹치는 시간대에 이미 일정이 있으면 예외 발생
-     * - 충돌하는 일정 목록을 예외에 담아서 클라이언트에게 알려줌
-     */
     private void checkScheduleConflict(Long userId, LocalDate date,
                                        LocalTime startTime, LocalTime endTime) {
         List<Schedule> conflictingSchedules = loadSchedulePort
                 .findConflictingSchedules(userId, date, startTime, endTime);
 
         if (!conflictingSchedules.isEmpty()) {
-            // 충돌하는 일정 정보를 담아서 예외 발생
-            // → 클라이언트에서 "이 시간에 OOO 일정이 있습니다" 표시 가능
             throw new ScheduleConflictException(conflictingSchedules);
         }
     }
 
-    /**
-     * 반복 규칙 생성
-     * - repeatType: "NONE", "DAILY", "WEEKLY", "MONTHLY"
-     * - repeatDays: "MON,TUE,WED" (WEEKLY일 때만 사용)
-     */
-    private RepeatRule createRepeatRule(String repeatType, String repeatDays) {
+    private RepeatRule createRepeatRule(String repeatType, String repeatDays,
+                                        LocalDate repeatEndDate, LocalDate startDate) {  // startDate 파라미터 추가
         if (repeatType == null || repeatType.equalsIgnoreCase("NONE")) {
             return RepeatRule.none();
         }
 
         return switch (repeatType.toUpperCase()) {
-            case "DAILY" -> RepeatRule.daily(null);  // 종료일 미지정
-            case "WEEKLY" -> RepeatRule.weekly(parseDaysOfWeek(repeatDays), null);
-            case "MONTHLY" -> RepeatRule.monthly(LocalDate.now().getDayOfMonth(), null);
+            case "DAILY" -> RepeatRule.daily(repeatEndDate);
+            case "WEEKLY" -> RepeatRule.weekly(parseDaysOfWeek(repeatDays), repeatEndDate);
+            case "MONTHLY" -> RepeatRule.monthly(startDate.getDayOfMonth(), repeatEndDate);  // startDate 사용!
             default -> RepeatRule.none();
         };
     }
 
-    /**
-     * "MON,TUE,WED" → Set<DayOfWeek> 변환
-     */
     private Set<DayOfWeek> parseDaysOfWeek(String repeatDays) {
         if (repeatDays == null || repeatDays.isBlank()) {
             return Set.of();
