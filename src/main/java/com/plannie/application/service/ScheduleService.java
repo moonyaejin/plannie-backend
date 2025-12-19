@@ -13,6 +13,7 @@ import com.plannie.common.exception.ScheduleConflictException;
 import com.plannie.domain.schedule.RepeatRule;
 import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.schedule.ScheduleException;
+import com.plannie.domain.schedule.RepeatRule.RepeatType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -299,48 +300,97 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         LocalDate repeatEndDate = rule.getEndDate() != null && rule.getEndDate().isBefore(monthEnd)
                 ? rule.getEndDate() : monthEnd;
 
-        while (!currentDate.isAfter(repeatEndDate)) {
-            if (rule.appliesTo(currentDate)) {
-                String key = schedule.getId() + "_" + currentDate;
+        // MONTHLY 타입일 때 특별 처리
+        if (rule.getType() == RepeatType.MONTHLY) {
+            Integer targetDayOfMonth = rule.getDayOfMonth();
+            LocalDate current = currentDate.withDayOfMonth(1); // 월 초부터 시작
 
-                // 삭제된 날짜는 건너뛰기
-                ScheduleException exception = exceptions.get(key);
-                if (exception != null && exception.isDeleted()) {
-                    currentDate = currentDate.plusDays(1);
-                    continue;
+            while (!current.isAfter(repeatEndDate)) {
+                // 해당 월의 실제 날짜 계산 (월말 조정)
+                int lastDayOfMonth = current.lengthOfMonth();
+                int actualDay = Math.min(targetDayOfMonth, lastDayOfMonth);
+                LocalDate targetDate = current.withDayOfMonth(actualDay);
+
+                // 범위 체크
+                if (!targetDate.isBefore(monthStart) &&
+                        !targetDate.isAfter(monthEnd) &&
+                        !targetDate.isBefore(schedule.getStartDate()) &&
+                        !targetDate.isAfter(repeatEndDate)) {
+
+                    String key = schedule.getId() + "_" + targetDate;
+
+                    // 삭제된 날짜는 건너뛰기
+                    ScheduleException exception = exceptions.get(key);
+                    if (exception != null && exception.isDeleted()) {
+                        current = current.plusMonths(1);
+                        continue;
+                    }
+
+                    // View 생성
+                    ScheduleView view = createScheduleView(
+                            schedule, targetDate, key, exception, completions, rule
+                    );
+                    views.add(view);
                 }
 
-                // View 생성 (수정사항, 완료상태 반영)
-                ScheduleView view = ScheduleView.builder()
-                        .id(schedule.getId())
-                        .instanceId(key)
-                        .title(exception != null && exception.getModifiedTitle() != null
-                                ? exception.getModifiedTitle() : schedule.getTitle())
-                        .memo(exception != null && exception.getModifiedMemo() != null
-                                ? exception.getModifiedMemo() : schedule.getMemo())
-                        .startDate(currentDate)
-                        .endDate(currentDate)
-                        .startTime(exception != null && exception.getModifiedStartTime() != null
-                                ? exception.getModifiedStartTime() : schedule.getStartTime())
-                        .endTime(exception != null && exception.getModifiedEndTime() != null
-                                ? exception.getModifiedEndTime() : schedule.getEndTime())
-                        .completed(completions.getOrDefault(key, false))
-                        .categoryId(schedule.getCategoryId())
-                        .isRecurring(true)
-                        .repeatType(rule.getType().name())
-                        .repeatDays(rule.getDaysOfWeek() != null
-                                ? rule.getDaysOfWeek().stream()
-                                .map(day -> day.name().substring(0, 3))
-                                .collect(Collectors.joining(","))
-                                : null)
-                        .build();
-
-                views.add(view);
+                current = current.plusMonths(1);
             }
-            currentDate = currentDate.plusDays(1);
+        } else {
+            // DAILY, WEEKLY는 기존 로직 유지
+            while (!currentDate.isAfter(repeatEndDate)) {
+                if (rule.appliesTo(currentDate)) {
+                    String key = schedule.getId() + "_" + currentDate;
+
+                    // 삭제된 날짜는 건너뛰기
+                    ScheduleException exception = exceptions.get(key);
+                    if (exception != null && exception.isDeleted()) {
+                        currentDate = currentDate.plusDays(1);
+                        continue;
+                    }
+
+                    // View 생성
+                    ScheduleView view = createScheduleView(
+                            schedule, currentDate, key, exception, completions, rule
+                    );
+                    views.add(view);
+                }
+                currentDate = currentDate.plusDays(1);
+            }
         }
 
         return views;
+    }
+
+    // View 생성 로직을 별도 메서드로 분리 (중복 제거)
+    private ScheduleView createScheduleView(Schedule schedule,
+                                            LocalDate date,
+                                            String key,
+                                            ScheduleException exception,
+                                            Map<String, Boolean> completions,
+                                            RepeatRule rule) {
+        return ScheduleView.builder()
+                .id(schedule.getId())
+                .instanceId(key)
+                .title(exception != null && exception.getModifiedTitle() != null
+                        ? exception.getModifiedTitle() : schedule.getTitle())
+                .memo(exception != null && exception.getModifiedMemo() != null
+                        ? exception.getModifiedMemo() : schedule.getMemo())
+                .startDate(date)
+                .endDate(date)
+                .startTime(exception != null && exception.getModifiedStartTime() != null
+                        ? exception.getModifiedStartTime() : schedule.getStartTime())
+                .endTime(exception != null && exception.getModifiedEndTime() != null
+                        ? exception.getModifiedEndTime() : schedule.getEndTime())
+                .completed(completions.getOrDefault(key, false))
+                .categoryId(schedule.getCategoryId())
+                .isRecurring(true)
+                .repeatType(rule.getType().name())
+                .repeatDays(rule.getDaysOfWeek() != null
+                        ? rule.getDaysOfWeek().stream()
+                        .map(day -> day.name().substring(0, 3))
+                        .collect(Collectors.joining(","))
+                        : null)
+                .build();
     }
 
     private void validateTimeRange(LocalTime startTime, LocalTime endTime) {
