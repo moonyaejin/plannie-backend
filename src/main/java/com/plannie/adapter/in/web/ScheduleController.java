@@ -2,6 +2,7 @@ package com.plannie.adapter.in.web;
 
 import com.plannie.adapter.in.web.dto.ScheduleRequest;
 import com.plannie.adapter.in.web.dto.ScheduleResponse;
+import com.plannie.adapter.in.web.dto.ScheduleView;
 import com.plannie.application.port.in.CreateScheduleUseCase;
 import com.plannie.application.port.in.CreateScheduleUseCase.CreateScheduleCommand;
 import com.plannie.application.port.in.DeleteScheduleUseCase;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -81,7 +83,8 @@ public class ScheduleController {
                 request.endTime(),
                 request.categoryId(),
                 request.repeatType(),
-                request.repeatDays()
+                request.repeatDays(),
+                request.repeatEndDate()
         );
 
         // 2. UseCase 호출
@@ -138,19 +141,28 @@ public class ScheduleController {
      * 기존 Express API: GET /planner/monthly?year=2024&month=6
      */
     @Operation(summary = "월별 일정 조회", description = "특정 월의 일정 목록을 조회합니다")
-    @GetMapping("/monthly")
-    public ResponseEntity<List<ScheduleResponse>> getSchedulesByMonth(
-            @RequestHeader(USER_ID_HEADER) Long userId,
-            @Parameter(description = "연도") @RequestParam int year,
-            @Parameter(description = "월 (1-12)") @RequestParam int month) {
+    @GetMapping("/month/{year}/{month}")
+    public ResponseEntity<List<ScheduleView>> getSchedulesByMonth(
+            @PathVariable int year,
+            @PathVariable int month,
+            @RequestParam Long userId) {
 
-        List<Schedule> schedules = getScheduleUseCase.getSchedulesByMonth(userId, year, month);
+        List<ScheduleView> schedules = getScheduleUseCase.getSchedulesByMonth(userId, year, month);
+        return ResponseEntity.ok(schedules);
+    }
 
-        List<ScheduleResponse> response = schedules.stream()
-                .map(ScheduleResponse::from)
-                .toList();
+    /**
+     * 반복 일정 개별 완료 API
+     */
+    @Operation(summary = "반복 일정 개별 완료", description = "반복 일정 중 하나를 개별 완료합니다")
+    @PatchMapping("/{id}/complete/{date}")
+    public ResponseEntity<Void> toggleRecurringComplete(
+            @PathVariable Long id,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam Long userId) {
 
-        return ResponseEntity.ok(response);
+        updateScheduleUseCase.toggleRecurringComplete(id, date, userId);
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -159,19 +171,15 @@ public class ScheduleController {
      */
     @Operation(summary = "기간별 일정 조회", description = "특정 기간의 일정 목록을 조회합니다")
     @GetMapping("/range")
-    public ResponseEntity<List<ScheduleResponse>> getSchedulesByDateRange(
-            @RequestHeader(USER_ID_HEADER) Long userId,
-            @Parameter(description = "시작 날짜") @RequestParam LocalDate startDate,
-            @Parameter(description = "종료 날짜") @RequestParam LocalDate endDate) {
+    public ResponseEntity<List<ScheduleView>> getSchedulesByDateRange(  // ScheduleResponse → ScheduleView
+                                                                        @RequestHeader(USER_ID_HEADER) Long userId,
+                                                                        @Parameter(description = "시작 날짜") @RequestParam LocalDate startDate,
+                                                                        @Parameter(description = "종료 날짜") @RequestParam LocalDate endDate) {
 
-        List<Schedule> schedules = getScheduleUseCase
+        List<ScheduleView> schedules = getScheduleUseCase
                 .getSchedulesByDateRange(userId, startDate, endDate);
 
-        List<ScheduleResponse> response = schedules.stream()
-                .map(ScheduleResponse::from)
-                .toList();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(schedules);
     }
 
     /**
