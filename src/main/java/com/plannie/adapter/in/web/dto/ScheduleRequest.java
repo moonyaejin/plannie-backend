@@ -50,6 +50,8 @@ public record ScheduleRequest(
 
         String repeatType,  // "NONE", "DAILY", "WEEKLY", "MONTHLY"
 
-        String repeatDays   // "MON,TUE,WED" (WEEKLY일 때)
+        String repeatDays,  // "MON,TUE,WED" (WEEKLY일 때)
+
+        LocalDate repeatEndDate // 반복 종료일 (null이면 무한 반복)
 ) {
 }
