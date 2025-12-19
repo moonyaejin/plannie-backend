@@ -1,16 +1,27 @@
 package com.plannie.adapter.out.persistence;
 
+import com.plannie.adapter.out.persistence.entity.ScheduleCompletionEntity;
+import com.plannie.adapter.out.persistence.entity.ScheduleExceptionEntity;
 import com.plannie.adapter.out.persistence.entity.ScheduleJpaEntity;
+import com.plannie.adapter.out.persistence.repository.ScheduleCompletionRepository;
+import com.plannie.adapter.out.persistence.repository.ScheduleExceptionRepository;
 import com.plannie.adapter.out.persistence.repository.ScheduleJpaRepository;
 import com.plannie.application.port.out.LoadSchedulePort;
 import com.plannie.application.port.out.SaveSchedulePort;
+import com.plannie.common.exception.BusinessException;
+import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.schedule.Schedule;
+import com.plannie.domain.schedule.ScheduleException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,6 +42,9 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
 
     private final ScheduleJpaRepository scheduleRepository;
     private final ScheduleMapper scheduleMapper;
+    private final ScheduleExceptionRepository scheduleExceptionRepository;
+    private final ScheduleCompletionRepository scheduleCompletionRepository;
+
 
     // ==================== LoadSchedulePort 구현 ====================
 
@@ -88,6 +102,23 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
                 .map(scheduleMapper::toDomain);
     }
 
+    @Override
+    public List<Schedule> findRepeatingSchedules(Long userId) {
+        return scheduleRepository.findByUserIdAndRepeatTypeNot(userId, ScheduleJpaEntity.RepeatType.NONE)
+                .stream()
+                .map(scheduleMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Schedule> findOneTimeSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        return scheduleRepository.findByUserIdAndStartDateBetweenAndRepeatType(
+                        userId, startDate, endDate, ScheduleJpaEntity.RepeatType.NONE
+                ).stream()
+                .map(scheduleMapper::toDomain)
+                .toList();
+    }
+
     // ==================== SaveSchedulePort 구현 ====================
 
     @Override
@@ -100,6 +131,64 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
 
         // 3. 저장된 Entity → 도메인 변환 (ID가 생성됨)
         return scheduleMapper.toDomain(savedEntity);
+    }
+
+    @Override
+    public void toggleComplete(Long scheduleId) {
+        ScheduleJpaEntity entity = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        entity.toggleComplete();  // 이미 있는 메서드 사용
+        scheduleRepository.save(entity);
+    }
+
+    @Override
+    public Map<String, ScheduleException> findExceptions(List<Long> scheduleIds,
+                                                         LocalDate startDate,
+                                                         LocalDate endDate) {
+        List<ScheduleExceptionEntity> exceptions =
+                scheduleExceptionRepository.findByScheduleIdsAndDateRange(scheduleIds, startDate, endDate);
+
+        Map<String, ScheduleException> map = new HashMap<>();
+        for (ScheduleExceptionEntity entity : exceptions) {
+            String key = entity.getScheduleId() + "_" + entity.getExceptionDate();
+            map.put(key, scheduleMapper.toDomain(entity));
+        }
+        return map;
+    }
+
+    @Override
+    public Map<String, Boolean> findCompletions(List<Long> scheduleIds,
+                                                LocalDate startDate,
+                                                LocalDate endDate) {
+        List<ScheduleCompletionEntity> completions =
+                scheduleCompletionRepository.findByScheduleIdsAndDateRange(scheduleIds, startDate, endDate);
+
+        Map<String, Boolean> map = new HashMap<>();
+        for (ScheduleCompletionEntity entity : completions) {
+            String key = entity.getScheduleId() + "_" + entity.getCompletionDate();
+            map.put(key, entity.isCompleted());
+        }
+        return map;
+    }
+
+    @Override
+    public void toggleCompletion(Long scheduleId, LocalDate date) {
+        Optional<ScheduleCompletionEntity> existing =
+                scheduleCompletionRepository.findByScheduleIdAndCompletionDate(scheduleId, date);
+
+        if (existing.isPresent()) {
+            ScheduleCompletionEntity entity = existing.get();
+            entity.toggleComplete();
+            scheduleCompletionRepository.save(entity);
+        } else {
+            ScheduleCompletionEntity newCompletion = ScheduleCompletionEntity.builder()
+                    .scheduleId(scheduleId)
+                    .completionDate(date)
+                    .completed(true)
+                    .build();
+            scheduleCompletionRepository.save(newCompletion);
+        }
     }
 
     @Override

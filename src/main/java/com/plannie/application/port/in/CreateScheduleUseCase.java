@@ -22,6 +22,7 @@ public interface CreateScheduleUseCase {
             LocalTime endTime,
             Long categoryId,
             String repeatType,
-            String repeatDays  // "MON,TUE,WED" 형식
+            String repeatDays,  // "MON,TUE,WED" 형식
+            LocalDate repeatEndDate
     ) {}
 }
