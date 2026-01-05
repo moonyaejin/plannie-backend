@@ -14,6 +14,7 @@ import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.schedule.ScheduleException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,6 +152,7 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
         }
     }
 
+    // 잀회성 일정의 완료 상태를 토글
     @Override
     public void toggleComplete(Long scheduleId) {
         ScheduleJpaEntity entity = scheduleRepository.findById(scheduleId)
@@ -190,22 +192,24 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
         return map;
     }
 
-    @Override
+    // 반복 일정의 특정 날짜 완료 상태를 토글
+    @Transactional
     public void toggleCompletion(Long scheduleId, LocalDate date) {
-        Optional<ScheduleCompletionEntity> existing =
-                scheduleCompletionRepository.findByScheduleIdAndCompletionDate(scheduleId, date);
-
-        if (existing.isPresent()) {
-            ScheduleCompletionEntity entity = existing.get();
-            entity.toggleComplete();
-            scheduleCompletionRepository.save(entity);
-        } else {
-            ScheduleCompletionEntity newCompletion = ScheduleCompletionEntity.builder()
+        try {
+            // 먼저 INSERT 시도
+            ScheduleCompletionEntity entity = ScheduleCompletionEntity.builder()
                     .scheduleId(scheduleId)
                     .completionDate(date)
                     .completed(true)
                     .build();
-            scheduleCompletionRepository.save(newCompletion);
+            scheduleCompletionRepository.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            // Unique 제약 위반 = 이미 있따는 것
+            ScheduleCompletionEntity existing = scheduleCompletionRepository
+                    .findByScheduleIdAndCompletionDate(scheduleId, date)
+                    .orElseThrow();
+            existing.toggleComplete();
+            scheduleCompletionRepository.save(existing);
         }
     }
 
