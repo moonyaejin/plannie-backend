@@ -24,6 +24,9 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -277,11 +280,16 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     @Override
     @Transactional
     public void deleteSchedule(Long scheduleId, Long userId) {
-        Schedule schedule = loadSchedulePort
-                .findByIdAndUserId(scheduleId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        Optional<Schedule> schedule = loadSchedulePort
+                .findByIdAndUserId(scheduleId, userId);
 
-        saveSchedulePort.delete(schedule.getId());
+        if (schedule.isPresent()) {
+            saveSchedulePort.delete(schedule.get().getId());
+            log.info("Deleted schedule {} for user {}", scheduleId, userId);
+        } else {
+            log.debug("Schedule {} not found or already deleted for user {}",
+                    scheduleId, userId);
+        }
     }
 
     // ==================== Private Helper Methods ====================

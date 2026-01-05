@@ -50,7 +50,7 @@ public class ScheduleMapper {
      * 비즈니스 로직 처리 후 DB에 저장할 때 사용
      */
     public ScheduleJpaEntity toEntity(Schedule schedule) {
-        return ScheduleJpaEntity.builder()
+        ScheduleJpaEntity entity = ScheduleJpaEntity.builder()
                 .id(schedule.getId())
                 .userId(schedule.getUserId())
                 .title(schedule.getTitle())
@@ -64,9 +64,11 @@ public class ScheduleMapper {
                 .repeatType(toRepeatType(schedule.getRepeatRule()))
                 .repeatDays(toRepeatDays(schedule.getRepeatRule()))
                 .repeatDayOfMonth(getRepeatDayOfMonth(schedule.getRepeatRule()))
-                .repeatEndDate(schedule.getRepeatRule() != null ? 
+                .repeatEndDate(schedule.getRepeatRule() != null ?
                         schedule.getRepeatRule().getEndDate() : null)
                 .build();
+
+        return entity;
     }
 
     /**

@@ -12,9 +12,13 @@ import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.schedule.ScheduleException;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 
 import java.time.LocalDate;
@@ -23,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Schedule Persistence Adapter
@@ -36,6 +41,7 @@ import java.util.Optional;
  * - 나중에 JPA → MongoDB로 바꿔도 이 Adapter만 교체하면 됨
  * - 테스트할 때 이 Adapter를 Mock으로 쉽게 대체 가능
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor  // final 필드 생성자 자동 생성 (Lombok)
 public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedulePort {
@@ -123,16 +129,34 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
 
     @Override
     public Schedule save(Schedule schedule) {
-        // 1. 도메인 → Entity 변환
-        ScheduleJpaEntity entity = scheduleMapper.toEntity(schedule);
+        if (schedule.getId() != null) {
+            // 수정인 경우: 기존 엔티티를 조회해서 업데이트
+            ScheduleJpaEntity existingEntity = scheduleRepository
+                    .findById(schedule.getId())
+                    .orElseThrow(() -> new EntityNotFoundException());
 
-        // 2. DB 저장 (JPA가 INSERT 또는 UPDATE 자동 판단)
-        ScheduleJpaEntity savedEntity = scheduleRepository.save(entity);
+            // 기존 엔티티의 필드 업데이트 (version은 건드리지 않음!)
+            existingEntity.update(
+                    schedule.getTitle(),
+                    schedule.getMemo(),
+                    schedule.getStartDate(),
+                    schedule.getEndDate(),
+                    schedule.getStartTime(),
+                    schedule.getEndTime(),
+                    schedule.getCategoryId()
+            );
 
-        // 3. 저장된 Entity → 도메인 변환 (ID가 생성됨)
-        return scheduleMapper.toDomain(savedEntity);
+            ScheduleJpaEntity saved = scheduleRepository.save(existingEntity);
+            return scheduleMapper.toDomain(saved);
+        } else {
+            // 신규 생성
+            ScheduleJpaEntity entity = scheduleMapper.toEntity(schedule);
+            ScheduleJpaEntity saved = scheduleRepository.save(entity);
+            return scheduleMapper.toDomain(saved);
+        }
     }
 
+    // 잀회성 일정의 완료 상태를 토글
     @Override
     public void toggleComplete(Long scheduleId) {
         ScheduleJpaEntity entity = scheduleRepository.findById(scheduleId)
@@ -172,27 +196,35 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
         return map;
     }
 
-    @Override
+    // 반복 일정의 특정 날짜 완료 상태를 토글
+    @Transactional
     public void toggleCompletion(Long scheduleId, LocalDate date) {
-        Optional<ScheduleCompletionEntity> existing =
-                scheduleCompletionRepository.findByScheduleIdAndCompletionDate(scheduleId, date);
-
-        if (existing.isPresent()) {
-            ScheduleCompletionEntity entity = existing.get();
-            entity.toggleComplete();
-            scheduleCompletionRepository.save(entity);
-        } else {
-            ScheduleCompletionEntity newCompletion = ScheduleCompletionEntity.builder()
+        try {
+            // 먼저 INSERT 시도
+            ScheduleCompletionEntity entity = ScheduleCompletionEntity.builder()
                     .scheduleId(scheduleId)
                     .completionDate(date)
                     .completed(true)
                     .build();
-            scheduleCompletionRepository.save(newCompletion);
+            scheduleCompletionRepository.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            // Unique 제약 위반 = 이미 있따는 것
+            ScheduleCompletionEntity existing = scheduleCompletionRepository
+                    .findByScheduleIdAndCompletionDate(scheduleId, date)
+                    .orElseThrow();
+            existing.toggleComplete();
+            scheduleCompletionRepository.save(existing);
         }
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void delete(Long scheduleId) {
-        scheduleRepository.deleteById(scheduleId);
+        try {
+            scheduleRepository.deleteById(scheduleId);
+            scheduleRepository.flush();
+        } catch (ObjectOptimisticLockingFailureException e) {
+            log.debug("Schedule {} was already deleted by another transaction", scheduleId);
+        }
     }
 }
