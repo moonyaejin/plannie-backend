@@ -11,6 +11,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,7 +33,7 @@ class ScheduleServiceConcurrencyTest {
                 new CreateScheduleUseCase.CreateScheduleCommand(
                         1L, "원본 제목", "메모",
                         LocalDate.now(), LocalDate.now(),
-                        LocalTime.of(14, 0), LocalTime.of(15, 0),
+                        LocalTime.of(14, 0), LocalTime.of(17, 0),
                         null, "NONE", null, null
                 )
         );
@@ -137,5 +138,54 @@ class ScheduleServiceConcurrencyTest {
 
         // Then: DB에서 확인 (이 부분은 Repository 직접 접근 필요)
         // 실제로는 schedule_completions 테이블에 1개만 있어야 함
+    }
+
+    @Test
+    void 동시에_삭제해도_최종적으로_삭제된다() throws InterruptedException {
+        // Given: 일정 생성
+        Schedule schedule = scheduleService.createSchedule(
+                new CreateScheduleUseCase.CreateScheduleCommand(
+                        1L, "삭제할 일정", "메모",
+                        LocalDate.now(), LocalDate.now(),
+                        LocalTime.of(16, 0), LocalTime.of(17, 0),
+                        null, "NONE", null, null
+                )
+        );
+
+        Long scheduleId = schedule.getId();
+        System.out.println("생성된 일정 ID: " + scheduleId);
+
+        // When: 5개 스레드가 동시에 삭제 시도
+        int threadCount = 5;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            final int index = i;
+            executor.submit(() -> {
+                try {
+                    scheduleService.deleteSchedule(scheduleId, 1L);
+                    System.out.println("Thread " + index + " 삭제 시도 완료");
+                } catch (Exception e) {
+                    // 트랜잭션 롤백 예외는 무시
+                    System.out.println("Thread " + index + " 예외 발생 (예상됨): "
+                            + e.getClass().getSimpleName());
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executor.shutdown();
+
+        // 트랜잭션 정리를 위한 짧은 대기
+        Thread.sleep(100);
+
+        // Then: 최종적으로 삭제되었는지 확인 (이것만 중요!)
+        Optional<Schedule> deleted = scheduleService.getSchedule(scheduleId, 1L);
+        assertThat(deleted).isEmpty();
+
+        System.out.println("동시성 삭제 테스트 성공: 일정이 최종적으로 삭제됨");
     }
 }

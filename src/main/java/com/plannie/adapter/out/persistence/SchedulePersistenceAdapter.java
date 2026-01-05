@@ -15,8 +15,10 @@ import com.plannie.domain.schedule.ScheduleException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 
 import java.time.LocalDate;
@@ -25,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Schedule Persistence Adapter
@@ -38,6 +41,7 @@ import java.util.Optional;
  * - 나중에 JPA → MongoDB로 바꿔도 이 Adapter만 교체하면 됨
  * - 테스트할 때 이 Adapter를 Mock으로 쉽게 대체 가능
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor  // final 필드 생성자 자동 생성 (Lombok)
 public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedulePort {
@@ -214,7 +218,13 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void delete(Long scheduleId) {
-        scheduleRepository.deleteById(scheduleId);
+        try {
+            scheduleRepository.deleteById(scheduleId);
+            scheduleRepository.flush();
+        } catch (ObjectOptimisticLockingFailureException e) {
+            log.debug("Schedule {} was already deleted by another transaction", scheduleId);
+        }
     }
 }
