@@ -12,6 +12,7 @@ import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.schedule.ScheduleException;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -123,14 +124,31 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
 
     @Override
     public Schedule save(Schedule schedule) {
-        // 1. 도메인 → Entity 변환
-        ScheduleJpaEntity entity = scheduleMapper.toEntity(schedule);
+        if (schedule.getId() != null) {
+            // 수정인 경우: 기존 엔티티를 조회해서 업데이트
+            ScheduleJpaEntity existingEntity = scheduleRepository
+                    .findById(schedule.getId())
+                    .orElseThrow(() -> new EntityNotFoundException());
 
-        // 2. DB 저장 (JPA가 INSERT 또는 UPDATE 자동 판단)
-        ScheduleJpaEntity savedEntity = scheduleRepository.save(entity);
+            // 기존 엔티티의 필드 업데이트 (version은 건드리지 않음!)
+            existingEntity.update(
+                    schedule.getTitle(),
+                    schedule.getMemo(),
+                    schedule.getStartDate(),
+                    schedule.getEndDate(),
+                    schedule.getStartTime(),
+                    schedule.getEndTime(),
+                    schedule.getCategoryId()
+            );
 
-        // 3. 저장된 Entity → 도메인 변환 (ID가 생성됨)
-        return scheduleMapper.toDomain(savedEntity);
+            ScheduleJpaEntity saved = scheduleRepository.save(existingEntity);
+            return scheduleMapper.toDomain(saved);
+        } else {
+            // 신규 생성
+            ScheduleJpaEntity entity = scheduleMapper.toEntity(schedule);
+            ScheduleJpaEntity saved = scheduleRepository.save(entity);
+            return scheduleMapper.toDomain(saved);
+        }
     }
 
     @Override
