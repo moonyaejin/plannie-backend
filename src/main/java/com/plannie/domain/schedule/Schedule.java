@@ -12,6 +12,7 @@ import java.time.LocalTime;
  * - 비즈니스 로직 포함
  */
 @Getter
+@Builder
 public class Schedule {
 
     private final Long id;
