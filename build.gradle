@@ -60,14 +60,14 @@ tasks.named('test') {
 }
 
 // QueryDSL 설정
-def querydslDir = "$buildDir/generated/querydsl"
+def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
 
 sourceSets {
     main.java.srcDirs += [querydslDir]
 }
 
 tasks.withType(JavaCompile) {
-    options.annotationProcessorGeneratedSourcesDirectory = file(querydslDir)
+    options.generatedSourceOutputDirectory = file(querydslDir)
 }
 
 clean.doLast {
