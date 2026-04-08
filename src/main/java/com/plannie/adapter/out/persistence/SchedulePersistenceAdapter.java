@@ -14,12 +14,12 @@ import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.schedule.ScheduleException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
-
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Schedule Persistence Adapter
@@ -43,7 +42,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor  // final 필드 생성자 자동 생성 (Lombok)
+@RequiredArgsConstructor
 public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedulePort {
 
     private final ScheduleJpaRepository scheduleRepository;
@@ -51,13 +50,12 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
     private final ScheduleExceptionRepository scheduleExceptionRepository;
     private final ScheduleCompletionRepository scheduleCompletionRepository;
 
-
     // ==================== LoadSchedulePort 구현 ====================
 
     @Override
     public Optional<Schedule> findById(Long id) {
         return scheduleRepository.findById(id)
-                .map(scheduleMapper::toDomain);  // Entity → Domain 변환
+                .map(scheduleMapper::toDomain);
     }
 
     @Override
@@ -82,26 +80,15 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
                 .toList();
     }
 
-    /**
-     * 충돌하는 일정 조회
-     * - 같은 날짜, 시간이 겹치는 일정들을 찾음
-     * - 일정 생성/수정 시 중복 체크에 사용
-     */
     @Override
     public List<Schedule> findConflictingSchedules(Long userId, LocalDate date,
                                                    LocalTime startTime, LocalTime endTime) {
-        // excludeId를 -1로 설정 (새로운 일정 생성 시)
         return scheduleRepository.findConflictingSchedules(userId, date, startTime, endTime, -1L)
                 .stream()
                 .map(scheduleMapper::toDomain)
                 .toList();
     }
 
-    /**
-     * 비관적 락을 사용한 조회
-     * - 동시에 같은 일정을 수정하려 할 때 데이터 정합성 보장
-     * - SELECT ... FOR UPDATE 쿼리 실행
-     */
     @Override
     public Optional<Schedule> findByIdWithLock(Long id) {
         return scheduleRepository.findByIdWithLock(id)
@@ -130,39 +117,33 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
     @Override
     public Schedule save(Schedule schedule) {
         if (schedule.getId() != null) {
-            // 수정인 경우: 기존 엔티티를 조회해서 업데이트
             ScheduleJpaEntity existingEntity = scheduleRepository
                     .findById(schedule.getId())
-                    .orElseThrow(() -> new EntityNotFoundException());
+                    .orElseThrow(EntityNotFoundException::new);
 
-            // 기존 엔티티의 필드 업데이트 (version은 건드리지 않음!)
             existingEntity.update(
                     schedule.getTitle(),
                     schedule.getMemo(),
                     schedule.getStartDate(),
                     schedule.getEndDate(),
-                    schedule.getStartTime(),
-                    schedule.getEndTime(),
+                    schedule.getStartTime() != null ? schedule.getStartTime() : LocalTime.of(0, 0),
+                    schedule.getEndTime() != null ? schedule.getEndTime() : LocalTime.of(23, 59),
                     schedule.getCategoryId()
             );
 
-            ScheduleJpaEntity saved = scheduleRepository.save(existingEntity);
-            return scheduleMapper.toDomain(saved);
+            return scheduleMapper.toDomain(scheduleRepository.save(existingEntity));
         } else {
-            // 신규 생성
             ScheduleJpaEntity entity = scheduleMapper.toEntity(schedule);
-            ScheduleJpaEntity saved = scheduleRepository.save(entity);
-            return scheduleMapper.toDomain(saved);
+            return scheduleMapper.toDomain(scheduleRepository.save(entity));
         }
     }
 
-    // 잀회성 일정의 완료 상태를 토글
     @Override
     public void toggleComplete(Long scheduleId) {
         ScheduleJpaEntity entity = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
 
-        entity.toggleComplete();  // 이미 있는 메서드 사용
+        entity.toggleComplete();
         scheduleRepository.save(entity);
     }
 
@@ -196,11 +177,9 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
         return map;
     }
 
-    // 반복 일정의 특정 날짜 완료 상태를 토글
     @Transactional
     public void toggleCompletion(Long scheduleId, LocalDate date) {
         try {
-            // 먼저 INSERT 시도
             ScheduleCompletionEntity entity = ScheduleCompletionEntity.builder()
                     .scheduleId(scheduleId)
                     .completionDate(date)
@@ -208,7 +187,6 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
                     .build();
             scheduleCompletionRepository.save(entity);
         } catch (DataIntegrityViolationException e) {
-            // Unique 제약 위반 = 이미 있따는 것
             ScheduleCompletionEntity existing = scheduleCompletionRepository
                     .findByScheduleIdAndCompletionDate(scheduleId, date)
                     .orElseThrow();

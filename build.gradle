@@ -87,3 +87,18 @@ task allTest(type: Test) {
     useJUnitPlatform()
     description = 'Run all tests regardless of tags'
 }
+
+// QueryDSL 설정
+def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
+
+sourceSets {
+    main.java.srcDirs += [querydslDir]
+}
+
+tasks.withType(JavaCompile) {
+    options.generatedSourceOutputDirectory = file(querydslDir)
+}
+
+clean.doLast {
+    file(querydslDir).deleteDir()
+}
