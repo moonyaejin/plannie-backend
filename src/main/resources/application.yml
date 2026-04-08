@@ -15,7 +15,6 @@ spring:
     open-in-view: false
 
   jackson:
-    property-naming-strategy: SNAKE_CASE
     serialization:
       write-dates-as-timestamps: false
 
@@ -67,7 +66,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
 
   data:

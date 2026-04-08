@@ -6,13 +6,18 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 /**
- * 일정 생성 유스케이스
+ * 일정 수정 유스케이스
  */
-public interface CreateScheduleUseCase {
+public interface UpdateScheduleUseCase {
 
-    Schedule createSchedule(CreateScheduleCommand command);
+    Schedule updateSchedule(UpdateScheduleCommand command);
 
-    record CreateScheduleCommand(
+    void toggleComplete(Long scheduleId, Long userId);
+
+    void toggleRecurringComplete(Long scheduleId, LocalDate date, Long userId);
+
+    record UpdateScheduleCommand(
+            Long scheduleId,
             Long userId,
             String title,
             String memo,
@@ -20,9 +25,6 @@ public interface CreateScheduleUseCase {
             LocalDate endDate,
             LocalTime startTime,
             LocalTime endTime,
-            Long categoryId,
-            String repeatType,
-            String repeatDays,  // "MON,TUE,WED" 형식
-            LocalDate repeatEndDate
+            Long categoryId
     ) {}
 }

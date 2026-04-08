@@ -55,8 +55,37 @@ dependencies {
     testImplementation 'org.testcontainers:mysql'
 }
 
+// 기본 테스트 태스크 (fast 태그만 실행, 태그 없는 테스트도 실행)
 tasks.named('test') {
+    useJUnitPlatform {
+        // 시스템 프로퍼티로 태그 지정 가능, 기본값은 fast
+        def tags = System.getProperty('test.tags', 'fast')
+        if (tags != 'all') {
+            includeTags tags.split(',')
+        }
+    }
+}
+
+// Critical 테스트 (동시성, 트랜잭션 등 중요한 테스트)
+task criticalTest(type: Test) {
+    useJUnitPlatform {
+        includeTags 'critical'
+    }
+    description = 'Run critical tests including concurrency tests'
+}
+
+// 통합 테스트 (모든 @SpringBootTest)
+task integrationTest(type: Test) {
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    description = 'Run all integration tests'
+}
+
+// 모든 테스트 실행
+task allTest(type: Test) {
     useJUnitPlatform()
+    description = 'Run all tests regardless of tags'
 }
 
 // QueryDSL 설정

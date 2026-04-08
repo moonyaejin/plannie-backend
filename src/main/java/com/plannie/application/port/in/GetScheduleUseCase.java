@@ -1,5 +1,6 @@
 package com.plannie.application.port.in;
 
+import com.plannie.adapter.in.web.dto.ScheduleView;
 import com.plannie.domain.schedule.Schedule;
 
 import java.time.LocalDate;
@@ -24,10 +25,10 @@ public interface GetScheduleUseCase {
     /**
      * 월별 일정 목록 조회
      */
-    List<Schedule> getSchedulesByMonth(Long userId, int year, int month);
+    List<ScheduleView> getSchedulesByMonth(Long userId, int year, int month);
 
     /**
      * 기간별 일정 목록 조회
      */
-    List<Schedule> getSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate);
+    List<ScheduleView> getSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate);
 }

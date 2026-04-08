@@ -1,6 +1,7 @@
 package com.plannie.adapter.out.persistence.repository;
 
 import com.plannie.adapter.out.persistence.entity.ScheduleJpaEntity;
+import com.plannie.adapter.out.persistence.entity.ScheduleJpaEntity.RepeatType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -68,4 +69,15 @@ public interface ScheduleJpaRepository extends JpaRepository<ScheduleJpaEntity, 
             @Param("year") int year,
             @Param("month") int month
     );
+
+    // ScheduleJpaRepository에 추가
+    List<ScheduleJpaEntity> findByUserIdAndStartDateBetweenAndRepeatType(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate,
+            RepeatType repeatType
+    );
+
+    // userId의 반복 일정 조회 (repeatType이 NONE이 아닌 것)
+    List<ScheduleJpaEntity> findByUserIdAndRepeatTypeNot(Long userId, ScheduleJpaEntity.RepeatType repeatType);
 }
