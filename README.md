@@ -26,7 +26,7 @@ com.plannie
 │   ├── in.web         # REST 컨트롤러
 │   └── out
 │       ├── persistence # JPA 구현체
-│       └── external    # 외부 API 연동
+│       └── ai          # OpenAI API 연동
 └── common              # 설정, 예외 처리
 ```
 
@@ -35,7 +35,12 @@ com.plannie
 ### 로컬 환경 (H2 DB)
 
 ```bash
-./gradlew bootRun
+# 1. 환경변수 설정
+cp .env.example .env  # 또는 직접 .env 생성
+# .env에 OPENAI_API_KEY 입력
+
+# 2. 서버 실행
+export $(cat .env | xargs) && ./gradlew bootRun
 ```
 
 ### Docker Compose
@@ -64,11 +69,12 @@ docker-compose up -d
 
 ## 주요 기능
 
-- [ ] 일정 CRUD
-- [ ] 반복 일정
-- [ ] 카테고리/태그
-- [ ] 일정 충돌 감지
-- [ ] 동시성 제어 (비관적 락)
-- [ ] 자연어 일정 파싱 (OpenAI)
+- [x] 일정 CRUD
+- [x] 반복 일정
+- [x] 카테고리/태그
+- [x] 일정 충돌 감지
+- [x] 동시성 제어 (비관적 락)
+- [x] 자연어 일정 파싱 (OpenAI GPT-4o)
 - [ ] 알림 스케줄링
+- [ ] JWT 인증
 - [ ] 통계 API
