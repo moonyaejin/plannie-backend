@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "StudyPlan", description = "AI 학습 계획 생성 API")
@@ -17,8 +18,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StudyPlanController {
 
-    private static final String USER_ID_HEADER = "X-User-Id";
-
     private final GenerateStudyPlanUseCase generateStudyPlanUseCase;
 
     @Operation(summary = "학습 계획 생성",
@@ -26,7 +25,7 @@ public class StudyPlanController {
     @PostMapping("/generate")
     @ResponseStatus(HttpStatus.CREATED)
     public StudyPlanResponse generate(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody StudyPlanRequest request) {
 
         GenerateStudyPlanCommand command = new GenerateStudyPlanCommand(

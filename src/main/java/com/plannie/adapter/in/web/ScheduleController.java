@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -59,9 +60,6 @@ public class ScheduleController {
     private final DeleteScheduleUseCase deleteScheduleUseCase;
     private final ParseScheduleUseCase parseScheduleUseCase;
 
-    // TODO: JWT에서 userId 추출하도록 수정 필요
-    // 지금은 임시로 헤더에서 받음
-    private static final String USER_ID_HEADER = "X-User-Id";
 
     // ── AI 자연어 파싱 ────────────────────────────────────────────────────────
 
@@ -69,7 +67,7 @@ public class ScheduleController {
     @PostMapping("/parse")
     @ResponseStatus(HttpStatus.CREATED)
     public ParseScheduleResponse parseAndCreate(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ParseScheduleRequest request) {
         Schedule schedule = parseScheduleUseCase.parseAndCreate(
                 new ParseScheduleUseCase.ParseScheduleCommand(userId, request.text())
@@ -82,7 +80,7 @@ public class ScheduleController {
     @Operation(summary = "일정 생성", description = "새로운 일정을 생성합니다")
     @PostMapping
     public ResponseEntity<ScheduleResponse> createSchedule(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ScheduleRequest request) {
 
         CreateScheduleCommand command = new CreateScheduleCommand(
@@ -111,7 +109,7 @@ public class ScheduleController {
     @Operation(summary = "일정 단건 조회", description = "ID로 일정을 조회합니다")
     @GetMapping("/{id}")
     public ResponseEntity<ScheduleResponse> getSchedule(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "일정 ID") @PathVariable Long id) {
 
         Schedule schedule = getScheduleUseCase.getSchedule(id, userId)
@@ -123,7 +121,7 @@ public class ScheduleController {
     @Operation(summary = "날짜별 일정 조회", description = "특정 날짜의 일정 목록을 조회합니다")
     @GetMapping("/date")
     public ResponseEntity<List<ScheduleResponse>> getSchedulesByDate(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "조회 날짜 (yyyy-MM-dd)")
             @RequestParam LocalDate date) {
 
@@ -147,7 +145,7 @@ public class ScheduleController {
     @Operation(summary = "기간별 일정 조회", description = "특정 기간의 일정 목록을 조회합니다")
     @GetMapping("/range")
     public ResponseEntity<List<ScheduleView>> getSchedulesByDateRange(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "시작 날짜") @RequestParam LocalDate startDate,
             @Parameter(description = "종료 날짜") @RequestParam LocalDate endDate) {
 
@@ -160,7 +158,7 @@ public class ScheduleController {
     @Operation(summary = "일정 수정", description = "일정을 수정합니다")
     @PutMapping("/{id}")
     public ResponseEntity<ScheduleResponse> updateSchedule(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "일정 ID") @PathVariable Long id,
             @Valid @RequestBody ScheduleRequest request) {
 
@@ -183,7 +181,7 @@ public class ScheduleController {
     @Operation(summary = "일정 완료 토글", description = "일정의 완료 상태를 토글합니다")
     @PatchMapping("/{id}/toggle")
     public ResponseEntity<Void> toggleComplete(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "일정 ID") @PathVariable Long id) {
 
         updateScheduleUseCase.toggleComplete(id, userId);
@@ -206,7 +204,7 @@ public class ScheduleController {
     @Operation(summary = "일정 삭제", description = "일정을 삭제합니다")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSchedule(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "일정 ID") @PathVariable Long id) {
 
         deleteScheduleUseCase.deleteSchedule(id, userId);
