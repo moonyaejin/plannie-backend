@@ -30,7 +30,7 @@ public record StudyPlanResponse(
             Long id,
             String title,
             String memo,
-            LocalDate date,
+            LocalDate startDate,
             LocalTime startTime,
             LocalTime endTime
     ) {

@@ -134,9 +134,9 @@ public class ScheduleController {
     @Operation(summary = "월별 일정 조회", description = "특정 월의 일정 목록을 조회합니다")
     @GetMapping("/month/{year}/{month}")
     public ResponseEntity<List<ScheduleView>> getSchedulesByMonth(
+            @AuthenticationPrincipal Long userId,
             @PathVariable int year,
-            @PathVariable int month,
-            @RequestParam Long userId) {
+            @PathVariable int month) {
 
         List<ScheduleView> schedules = getScheduleUseCase.getSchedulesByMonth(userId, year, month);
         return ResponseEntity.ok(schedules);
@@ -191,9 +191,9 @@ public class ScheduleController {
     @Operation(summary = "반복 일정 개별 완료", description = "반복 일정 중 하나를 개별 완료합니다")
     @PatchMapping("/{id}/complete/{date}")
     public ResponseEntity<Void> toggleRecurringComplete(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long id,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam Long userId) {
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
         updateScheduleUseCase.toggleRecurringComplete(id, date, userId);
         return ResponseEntity.ok().build();
