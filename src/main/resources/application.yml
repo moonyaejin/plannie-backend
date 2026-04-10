@@ -87,6 +87,10 @@ openai:
   api-key: ${OPENAI_API_KEY:your-api-key}
   model: gpt-4o
 
+jwt:
+  secret: ${JWT_SECRET:plannie-local-dev-secret-key-must-be-at-least-32-chars}
+  expiration-ms: 86400000  # 24시간
+
 ---
 # Production 환경
 spring:
