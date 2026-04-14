@@ -80,4 +80,7 @@ public interface ScheduleJpaRepository extends JpaRepository<ScheduleJpaEntity, 
 
     // userId의 반복 일정 조회 (repeatType이 NONE이 아닌 것)
     List<ScheduleJpaEntity> findByUserIdAndRepeatTypeNot(Long userId, ScheduleJpaEntity.RepeatType repeatType);
+
+    // 알림용: 특정 날짜에 시작 시간이 범위 안에 있는 일정 조회
+    List<ScheduleJpaEntity> findByStartDateAndStartTimeBetween(LocalDate startDate, LocalTime from, LocalTime to);
 }

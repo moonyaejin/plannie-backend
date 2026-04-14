@@ -29,6 +29,9 @@ public enum ErrorCode {
     // Category
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CT001", "카테고리를 찾을 수 없습니다."),
 
+    // Notification
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "알림을 찾을 수 없습니다."),
+
     // External API
     OPENAI_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "E001", "AI 서비스 연동 중 오류가 발생했습니다."),
     OPENAI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "E002", "자연어 파싱에 실패했습니다.");

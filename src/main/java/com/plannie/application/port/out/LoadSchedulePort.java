@@ -21,4 +21,7 @@ public interface LoadSchedulePort {
     // 반복 일정 예외/완료 조회
     Map<String, ScheduleException> findExceptions(List<Long> scheduleIds, LocalDate startDate, LocalDate endDate);
     Map<String, Boolean> findCompletions(List<Long> scheduleIds, LocalDate startDate, LocalDate endDate);
+
+    // 알림 스케줄러용: 특정 날짜 + 시작 시간 범위로 조회
+    List<Schedule> findByDateAndStartTimeBetween(LocalDate date, LocalTime from, LocalTime to);
 }
