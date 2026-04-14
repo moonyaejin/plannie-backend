@@ -46,7 +46,7 @@ public class NotificationService implements GetNotificationUseCase, MarkNotifica
         List<Schedule> upcomingSchedules = loadSchedulePort.findByDateAndStartTimeBetween(today, from, to);
 
         for (Schedule schedule : upcomingSchedules) {
-            if (loadNotificationPort.existsByScheduleId(schedule.getId())) {
+            if (loadNotificationPort.existsByScheduleIdAndScheduledDate(schedule.getId(), today)) {
                 continue;
             }
 
