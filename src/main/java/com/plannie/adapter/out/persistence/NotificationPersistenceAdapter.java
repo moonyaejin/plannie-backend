@@ -43,9 +43,10 @@ public class NotificationPersistenceAdapter implements LoadNotificationPort, Sav
     @Override
     public Notification save(Notification notification) {
         if (notification.getId() != null) {
+            // 기존 엔티티 조회 후 도메인 상태를 그대로 반영
             NotificationJpaEntity entity = notificationRepository.findById(notification.getId())
                     .orElseThrow();
-            entity.markAsRead();
+            entity.updateReadStatus(notification.isRead());
             return toDomain(notificationRepository.save(entity));
         }
         return toDomain(notificationRepository.save(toEntity(notification)));
