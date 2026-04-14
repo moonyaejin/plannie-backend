@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Slf4j
@@ -35,8 +36,9 @@ public class NotificationService implements GetNotificationUseCase, MarkNotifica
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void createUpcomingNotifications() {
-        LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
+        ZoneId seoulZone = ZoneId.of("Asia/Seoul");
+        LocalDate today = LocalDate.now(seoulZone);
+        LocalTime now = LocalTime.now(seoulZone);
         LocalTime thirtyMinutesLater = now.plusMinutes(30);
 
         // 30분 후 시작하는 일정 조회 (±1분 범위로 정확히 한 번만 발송)
@@ -56,7 +58,7 @@ public class NotificationService implements GetNotificationUseCase, MarkNotifica
                     .message("30분 후 일정이 시작됩니다: " + schedule.getTitle())
                     .scheduledAt(LocalDateTime.of(today, schedule.getStartTime()))
                     .read(false)
-                    .createdAt(LocalDateTime.now())
+                    .createdAt(LocalDateTime.now(seoulZone))
                     .build();
 
             saveNotificationPort.save(notification);
