@@ -125,3 +125,9 @@ openai:
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 86400000  # 24시간
+
+springdoc:
+  api-docs:
+    enabled: false  # prod에서 API 문서 비활성화
+  swagger-ui:
+    enabled: false
