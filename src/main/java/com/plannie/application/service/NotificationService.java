@@ -3,13 +3,12 @@ package com.plannie.application.service;
 import com.plannie.application.port.in.GetNotificationUseCase;
 import com.plannie.application.port.in.MarkNotificationReadUseCase;
 import com.plannie.application.port.out.LoadNotificationPort;
+import com.plannie.application.port.out.LoadSchedulePort;
 import com.plannie.application.port.out.SaveNotificationPort;
 import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.notification.Notification;
 import com.plannie.domain.schedule.Schedule;
-import com.plannie.adapter.out.persistence.repository.ScheduleJpaRepository;
-import com.plannie.adapter.out.persistence.ScheduleMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -28,8 +27,7 @@ public class NotificationService implements GetNotificationUseCase, MarkNotifica
 
     private final LoadNotificationPort loadNotificationPort;
     private final SaveNotificationPort saveNotificationPort;
-    private final ScheduleJpaRepository scheduleJpaRepository;
-    private final ScheduleMapper scheduleMapper;
+    private final LoadSchedulePort loadSchedulePort;
 
     /**
      * 매 분마다 30분 후 시작하는 일정을 조회하여 알림 생성
@@ -45,11 +43,7 @@ public class NotificationService implements GetNotificationUseCase, MarkNotifica
         LocalTime from = thirtyMinutesLater.minusSeconds(30);
         LocalTime to = thirtyMinutesLater.plusSeconds(30);
 
-        List<Schedule> upcomingSchedules = scheduleJpaRepository
-                .findByStartDateAndStartTimeBetween(today, from, to)
-                .stream()
-                .map(scheduleMapper::toDomain)
-                .toList();
+        List<Schedule> upcomingSchedules = loadSchedulePort.findByDateAndStartTimeBetween(today, from, to);
 
         for (Schedule schedule : upcomingSchedules) {
             if (loadNotificationPort.existsByScheduleId(schedule.getId())) {
