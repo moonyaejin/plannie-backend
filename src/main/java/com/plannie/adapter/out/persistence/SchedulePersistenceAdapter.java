@@ -104,6 +104,14 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
     }
 
     @Override
+    public List<Schedule> findByDateAndStartTimeBetween(LocalDate date, LocalTime from, LocalTime to) {
+        return scheduleRepository.findByStartDateAndStartTimeBetween(date, from, to)
+                .stream()
+                .map(scheduleMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Schedule> findOneTimeSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
         return scheduleRepository.findByUserIdAndStartDateBetweenAndRepeatType(
                         userId, startDate, endDate, ScheduleJpaEntity.RepeatType.NONE
