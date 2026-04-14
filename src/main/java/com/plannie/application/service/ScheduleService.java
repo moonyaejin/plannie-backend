@@ -447,7 +447,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
             case "FRI" -> DayOfWeek.FRIDAY;
             case "SAT" -> DayOfWeek.SATURDAY;
             case "SUN" -> DayOfWeek.SUNDAY;
-            default -> throw new IllegalArgumentException("Invalid day: " + day);
+            default -> throw new BusinessException(ErrorCode.INVALID_INPUT);
         };
     }
 }
