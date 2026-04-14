@@ -1,6 +1,6 @@
 package com.plannie.application.service;
 
-import com.plannie.adapter.in.web.dto.ScheduleView;
+import com.plannie.application.port.in.ScheduleView;
 import com.plannie.application.port.in.CreateScheduleUseCase;
 import com.plannie.application.port.in.DeleteScheduleUseCase;
 import com.plannie.application.port.in.GetScheduleUseCase;
