@@ -280,16 +280,12 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     @Override
     @Transactional
     public void deleteSchedule(Long scheduleId, Long userId) {
-        Optional<Schedule> schedule = loadSchedulePort
-                .findByIdAndUserId(scheduleId, userId);
+        Schedule schedule = loadSchedulePort
+                .findByIdAndUserId(scheduleId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
 
-        if (schedule.isPresent()) {
-            saveSchedulePort.delete(schedule.get().getId());
-            log.info("Deleted schedule {} for user {}", scheduleId, userId);
-        } else {
-            log.debug("Schedule {} not found or already deleted for user {}",
-                    scheduleId, userId);
-        }
+        saveSchedulePort.delete(schedule.getId());
+        log.info("Deleted schedule {} for user {}", scheduleId, userId);
     }
 
     // ==================== Private Helper Methods ====================
