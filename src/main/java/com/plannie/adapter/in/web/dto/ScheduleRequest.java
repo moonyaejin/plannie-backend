@@ -52,6 +52,8 @@ public record ScheduleRequest(
 
         String repeatDays,  // "MON,TUE,WED" (WEEKLY일 때)
 
-        LocalDate repeatEndDate // 반복 종료일 (null이면 무한 반복)
+        LocalDate repeatEndDate, // 반복 종료일 (null이면 무한 반복)
+
+        Integer reminderMinutes  // null = 알림 없음, 5/10/30 = X분 전 알림
 ) {
 }
