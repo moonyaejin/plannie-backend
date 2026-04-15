@@ -40,7 +40,7 @@ class NotificationServiceTest {
     @InjectMocks
     private NotificationService notificationService;
 
-    private Schedule schedule(Long id, Long userId, String title, LocalTime startTime) {
+    private Schedule schedule(Long id, Long userId, String title, LocalTime startTime, Integer reminderMinutes) {
         return Schedule.builder()
                 .id(id)
                 .userId(userId)
@@ -50,14 +50,19 @@ class NotificationServiceTest {
                 .startTime(startTime)
                 .endTime(startTime.plusHours(1))
                 .completed(false)
+                .reminderMinutes(reminderMinutes)
                 .build();
     }
 
     @Test
-    @DisplayName("30분 후 일정이 있고 알림이 없으면 알림을 생성한다")
+    @DisplayName("30분 전 알림 설정된 일정에 알림이 없으면 알림을 생성한다")
     void 알림_생성() {
-        Schedule upcoming = schedule(1L, 10L, "스프링 공부", LocalTime.now().plusMinutes(30));
-        given(loadSchedulePort.findByDateAndStartTimeBetween(any(), any(), any()))
+        Schedule upcoming = schedule(1L, 10L, "스프링 공부", LocalTime.now().plusMinutes(30), 30);
+        given(loadSchedulePort.findByDateAndStartTimeBetweenAndReminderMinutes(any(), any(), any(), eq(5)))
+                .willReturn(List.of());
+        given(loadSchedulePort.findByDateAndStartTimeBetweenAndReminderMinutes(any(), any(), any(), eq(10)))
+                .willReturn(List.of());
+        given(loadSchedulePort.findByDateAndStartTimeBetweenAndReminderMinutes(any(), any(), any(), eq(30)))
                 .willReturn(List.of(upcoming));
         given(loadNotificationPort.existsByScheduleIdAndScheduledDate(eq(1L), any())).willReturn(false);
 
@@ -76,8 +81,12 @@ class NotificationServiceTest {
     @Test
     @DisplayName("이미 알림이 있는 일정은 중복 생성하지 않는다")
     void 중복_알림_방지() {
-        Schedule upcoming = schedule(1L, 10L, "스프링 공부", LocalTime.now().plusMinutes(30));
-        given(loadSchedulePort.findByDateAndStartTimeBetween(any(), any(), any()))
+        Schedule upcoming = schedule(1L, 10L, "스프링 공부", LocalTime.now().plusMinutes(30), 30);
+        given(loadSchedulePort.findByDateAndStartTimeBetweenAndReminderMinutes(any(), any(), any(), eq(5)))
+                .willReturn(List.of());
+        given(loadSchedulePort.findByDateAndStartTimeBetweenAndReminderMinutes(any(), any(), any(), eq(10)))
+                .willReturn(List.of());
+        given(loadSchedulePort.findByDateAndStartTimeBetweenAndReminderMinutes(any(), any(), any(), eq(30)))
                 .willReturn(List.of(upcoming));
         given(loadNotificationPort.existsByScheduleIdAndScheduledDate(eq(1L), any())).willReturn(true);
 

@@ -24,4 +24,8 @@ public interface LoadSchedulePort {
 
     // 알림 스케줄러용: 특정 날짜 + 시작 시간 범위로 조회
     List<Schedule> findByDateAndStartTimeBetween(LocalDate date, LocalTime from, LocalTime to);
+
+    // 알림 스케줄러용: reminderMinutes 설정된 일정만 조회
+    List<Schedule> findByDateAndStartTimeBetweenAndReminderMinutes(
+            LocalDate date, LocalTime from, LocalTime to, int reminderMinutes);
 }

@@ -48,7 +48,7 @@ class ScheduleServiceTest {
     private static final LocalTime END = LocalTime.of(22, 0);
 
     private CreateScheduleCommand command(LocalTime start, LocalTime end) {
-        return new CreateScheduleCommand(USER_ID, "제목", null, DATE, null, start, end, null, null, null, null);
+        return new CreateScheduleCommand(USER_ID, "제목", null, DATE, null, start, end, null, null, null, null, null);
     }
 
     private Schedule savedSchedule() {
@@ -122,7 +122,7 @@ class ScheduleServiceTest {
         given(loadSchedulePort.findByIdAndUserId(99L, USER_ID)).willReturn(Optional.empty());
 
         UpdateScheduleCommand cmd = new UpdateScheduleCommand(
-                99L, USER_ID, "수정", null, DATE, null, START, END, null
+                99L, USER_ID, "수정", null, DATE, null, START, END, null, null
         );
 
         assertThatThrownBy(() -> scheduleService.updateSchedule(cmd))

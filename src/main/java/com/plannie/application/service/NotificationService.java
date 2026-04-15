@@ -30,8 +30,10 @@ public class NotificationService implements GetNotificationUseCase, MarkNotifica
     private final SaveNotificationPort saveNotificationPort;
     private final LoadSchedulePort loadSchedulePort;
 
+    private static final List<Integer> SUPPORTED_REMINDER_MINUTES = List.of(5, 10, 30);
+
     /**
-     * 매 분마다 30분 후 시작하는 일정을 조회하여 알림 생성
+     * 매 분마다 각 알림 설정(5/10/30분 전)에 맞는 일정을 조회하여 알림 생성
      */
     @Scheduled(cron = "0 * * * * *")
     @Transactional
@@ -39,31 +41,33 @@ public class NotificationService implements GetNotificationUseCase, MarkNotifica
         ZoneId seoulZone = ZoneId.of("Asia/Seoul");
         LocalDate today = LocalDate.now(seoulZone);
         LocalTime now = LocalTime.now(seoulZone);
-        LocalTime thirtyMinutesLater = now.plusMinutes(30);
 
-        // 30분 후 시작하는 일정 조회 (±1분 범위로 정확히 한 번만 발송)
-        LocalTime from = thirtyMinutesLater.minusSeconds(30);
-        LocalTime to = thirtyMinutesLater.plusSeconds(30);
+        for (int minutes : SUPPORTED_REMINDER_MINUTES) {
+            LocalTime targetTime = now.plusMinutes(minutes);
+            LocalTime from = targetTime.minusSeconds(30);
+            LocalTime to = targetTime.plusSeconds(30);
 
-        List<Schedule> upcomingSchedules = loadSchedulePort.findByDateAndStartTimeBetween(today, from, to);
+            List<Schedule> upcomingSchedules = loadSchedulePort
+                    .findByDateAndStartTimeBetweenAndReminderMinutes(today, from, to, minutes);
 
-        for (Schedule schedule : upcomingSchedules) {
-            if (loadNotificationPort.existsByScheduleIdAndScheduledDate(schedule.getId(), today)) {
-                continue;
+            for (Schedule schedule : upcomingSchedules) {
+                if (loadNotificationPort.existsByScheduleIdAndScheduledDate(schedule.getId(), today)) {
+                    continue;
+                }
+
+                Notification notification = Notification.builder()
+                        .userId(schedule.getUserId())
+                        .scheduleId(schedule.getId())
+                        .message(minutes + "분 후 일정이 시작됩니다: " + schedule.getTitle())
+                        .scheduledAt(LocalDateTime.of(today, schedule.getStartTime()))
+                        .read(false)
+                        .createdAt(LocalDateTime.now(seoulZone))
+                        .build();
+
+                saveNotificationPort.save(notification);
+                log.debug("알림 생성 - userId: {}, scheduleId: {}, reminderMinutes: {}, title: {}",
+                        schedule.getUserId(), schedule.getId(), minutes, schedule.getTitle());
             }
-
-            Notification notification = Notification.builder()
-                    .userId(schedule.getUserId())
-                    .scheduleId(schedule.getId())
-                    .message("30분 후 일정이 시작됩니다: " + schedule.getTitle())
-                    .scheduledAt(LocalDateTime.of(today, schedule.getStartTime()))
-                    .read(false)
-                    .createdAt(LocalDateTime.now(seoulZone))
-                    .build();
-
-            saveNotificationPort.save(notification);
-            log.debug("알림 생성 - userId: {}, scheduleId: {}, title: {}",
-                    schedule.getUserId(), schedule.getId(), schedule.getTitle());
         }
     }
 
