@@ -34,7 +34,7 @@ class ScheduleServiceConcurrencyTest {
                         1L, "원본 제목", "메모",
                         LocalDate.now(), LocalDate.now(),
                         LocalTime.of(14, 0), LocalTime.of(17, 0),
-                        null, "NONE", null, null
+                        null, "NONE", null, null, null
                 )
         );
 
@@ -60,7 +60,7 @@ class ScheduleServiceConcurrencyTest {
                                     "수정된 메모",
                                     LocalDate.now(), LocalDate.now(),
                                     LocalTime.of(14, 0), LocalTime.of(15, 0),
-                                    null
+                                    null, null
                             );
 
                     scheduleService.updateSchedule(command);   // 수정 시도
@@ -104,7 +104,7 @@ class ScheduleServiceConcurrencyTest {
                         1L, "반복 일정", "메모",
                         LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 1),
                         LocalTime.of(10, 0), LocalTime.of(11, 0),
-                        null, "DAILY", null, null
+                        null, "DAILY", null, null, null
                 )
         );
 
@@ -148,7 +148,7 @@ class ScheduleServiceConcurrencyTest {
                         1L, "삭제할 일정", "메모",
                         LocalDate.now(), LocalDate.now(),
                         LocalTime.of(16, 0), LocalTime.of(17, 0),
-                        null, "NONE", null, null
+                        null, "NONE", null, null, null
                 )
         );
 

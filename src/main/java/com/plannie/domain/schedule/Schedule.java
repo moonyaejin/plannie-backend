@@ -26,12 +26,14 @@ public class Schedule {
     private boolean completed;
     private RepeatRule repeatRule;
     private Long categoryId;
+    private Integer reminderMinutes;  // null = 알림 없음, 5/10/30 = X분 전 알림
 
     @Builder
     public Schedule(Long id, Long userId, String title, String memo,
                     LocalDate startDate, LocalDate endDate,
                     LocalTime startTime, LocalTime endTime,
-                    boolean completed, RepeatRule repeatRule, Long categoryId) {
+                    boolean completed, RepeatRule repeatRule, Long categoryId,
+                    Integer reminderMinutes) {
         this.id = id;
         this.userId = userId;
         this.title = title;
@@ -43,6 +45,7 @@ public class Schedule {
         this.completed = completed;
         this.repeatRule = repeatRule;
         this.categoryId = categoryId;
+        this.reminderMinutes = reminderMinutes;
     }
 
     /**
@@ -74,10 +77,10 @@ public class Schedule {
     /**
      * 일정 정보 수정
      */
-    public void update(String title, String memo, 
+    public void update(String title, String memo,
                        LocalDate startDate, LocalDate endDate,
                        LocalTime startTime, LocalTime endTime,
-                       Long categoryId) {
+                       Long categoryId, Integer reminderMinutes) {
         this.title = title;
         this.memo = memo;
         this.startDate = startDate;
@@ -85,6 +88,7 @@ public class Schedule {
         this.startTime = startTime;
         this.endTime = endTime;
         this.categoryId = categoryId;
+        this.reminderMinutes = reminderMinutes;
     }
 
     /**
