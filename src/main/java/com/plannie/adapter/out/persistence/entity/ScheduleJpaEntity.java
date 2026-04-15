@@ -69,6 +69,9 @@ public class ScheduleJpaEntity {
     @Column(name = "repeat_end_date")
     private LocalDate repeatEndDate;
 
+    @Column(name = "reminder_minutes")
+    private Integer reminderMinutes;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -84,7 +87,8 @@ public class ScheduleJpaEntity {
                              LocalTime startTime, LocalTime endTime,
                              boolean completed, Long categoryId,
                              RepeatType repeatType, String repeatDays,
-                             Integer repeatDayOfMonth, LocalDate repeatEndDate) {
+                             Integer repeatDayOfMonth, LocalDate repeatEndDate,
+                             Integer reminderMinutes) {
         this.id = id;
         this.userId = userId;
         this.title = title;
@@ -99,6 +103,7 @@ public class ScheduleJpaEntity {
         this.repeatDays = repeatDays;
         this.repeatDayOfMonth = repeatDayOfMonth;
         this.repeatEndDate = repeatEndDate;
+        this.reminderMinutes = reminderMinutes;
     }
 
     @PrePersist
@@ -113,7 +118,8 @@ public class ScheduleJpaEntity {
     }
 
     public void update(String title, String memo, LocalDate startDate, LocalDate endDate,
-                       LocalTime startTime, LocalTime endTime, Long categoryId) {
+                       LocalTime startTime, LocalTime endTime, Long categoryId,
+                       Integer reminderMinutes) {
         this.title = title;
         this.memo = memo;
         this.startDate = startDate;
@@ -121,6 +127,7 @@ public class ScheduleJpaEntity {
         this.startTime = startTime;
         this.endTime = endTime;
         this.categoryId = categoryId;
+        this.reminderMinutes = reminderMinutes;
     }
 
     public void toggleComplete() {

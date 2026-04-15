@@ -23,7 +23,8 @@ public record ScheduleResponse(
         boolean completed,
         Long categoryId,
         String repeatType,
-        String repeatDays
+        String repeatDays,
+        Integer reminderMinutes
 ) {
     /**
      * 도메인 객체 → DTO 변환
@@ -45,7 +46,8 @@ public record ScheduleResponse(
                 schedule.getCategoryId(),
                 schedule.getRepeatRule() != null ?
                         schedule.getRepeatRule().getType().name() : "NONE",
-                formatRepeatDays(schedule)
+                formatRepeatDays(schedule),
+                schedule.getReminderMinutes()
         );
     }
 

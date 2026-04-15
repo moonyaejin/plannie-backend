@@ -94,7 +94,8 @@ public class ScheduleController {
                 request.categoryId(),
                 request.repeatType(),
                 request.repeatDays(),
-                request.repeatEndDate()
+                request.repeatEndDate(),
+                request.reminderMinutes()
         );
 
         Schedule created = createScheduleUseCase.createSchedule(command);
@@ -171,7 +172,8 @@ public class ScheduleController {
                 request.endDate(),
                 request.startTime(),
                 request.endTime(),
-                request.categoryId()
+                request.categoryId(),
+                request.reminderMinutes()
         );
 
         Schedule updated = updateScheduleUseCase.updateSchedule(command);

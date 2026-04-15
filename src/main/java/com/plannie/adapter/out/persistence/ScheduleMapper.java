@@ -42,6 +42,7 @@ public class ScheduleMapper {
                 .completed(entity.isCompleted())
                 .categoryId(entity.getCategoryId())
                 .repeatRule(toRepeatRule(entity))
+                .reminderMinutes(entity.getReminderMinutes())
                 .build();
     }
 
@@ -66,6 +67,7 @@ public class ScheduleMapper {
                 .repeatDayOfMonth(getRepeatDayOfMonth(schedule.getRepeatRule()))
                 .repeatEndDate(schedule.getRepeatRule() != null ?
                         schedule.getRepeatRule().getEndDate() : null)
+                .reminderMinutes(schedule.getReminderMinutes())
                 .build();
 
         return entity;

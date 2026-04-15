@@ -63,11 +63,12 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
                 .endTime(command.endTime())
                 .completed(false)
                 .categoryId(command.categoryId())
+                .reminderMinutes(command.reminderMinutes())
                 .repeatRule(createRepeatRule(
                         command.repeatType(),
                         command.repeatDays(),
                         command.repeatEndDate(),
-                        command.startDate()  // startDate 전달
+                        command.startDate()
                 ))
                 .build();
 
@@ -189,7 +190,8 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
                 command.endDate() != null ? command.endDate() : command.startDate(),
                 command.startTime(),
                 command.endTime(),
-                command.categoryId()
+                command.categoryId(),
+                command.reminderMinutes()
         );
 
         // 4. DB 저장
