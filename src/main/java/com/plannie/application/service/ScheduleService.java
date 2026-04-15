@@ -1,6 +1,6 @@
 package com.plannie.application.service;
 
-import com.plannie.adapter.in.web.dto.ScheduleView;
+import com.plannie.application.port.in.ScheduleView;
 import com.plannie.application.port.in.CreateScheduleUseCase;
 import com.plannie.application.port.in.DeleteScheduleUseCase;
 import com.plannie.application.port.in.GetScheduleUseCase;
@@ -104,67 +104,15 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     public List<ScheduleView> getSchedulesByMonth(Long userId, int year, int month) {
         LocalDate startDate = LocalDate.of(year, month, 1);
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
-
-        // 1. 일회성 일정 조회
-        List<Schedule> oneTimeSchedules = loadSchedulePort.findOneTimeSchedulesByDateRange(
-                userId, startDate, endDate
-        );
-
-        // 2. 반복 일정 조회
-        List<Schedule> repeatingSchedules = loadSchedulePort.findRepeatingSchedules(userId);
-
-        // 3. 예외사항과 완료 상태 조회
-        List<Long> scheduleIds = repeatingSchedules.stream()
-                .map(Schedule::getId)
-                .toList();
-
-        Map<String, ScheduleException> exceptions = scheduleIds.isEmpty()
-                ? new HashMap<>()
-                : loadSchedulePort.findExceptions(scheduleIds, startDate, endDate);
-
-        Map<String, Boolean> completions = scheduleIds.isEmpty()
-                ? new HashMap<>()
-                : loadSchedulePort.findCompletions(scheduleIds, startDate, endDate);
-
-        // 4. 일회성 일정을 View로 변환
-        List<ScheduleView> views = new ArrayList<>();
-        for (Schedule schedule : oneTimeSchedules) {
-            views.add(ScheduleView.builder()
-                    .id(schedule.getId())
-                    .instanceId(schedule.getId().toString())
-                    .title(schedule.getTitle())
-                    .memo(schedule.getMemo())
-                    .startDate(schedule.getStartDate())
-                    .endDate(schedule.getEndDate())
-                    .startTime(schedule.getStartTime())
-                    .endTime(schedule.getEndTime())
-                    .completed(schedule.isCompleted())
-                    .categoryId(schedule.getCategoryId())
-                    .isRecurring(false)
-                    .repeatType("NONE")
-                    .build());
-        }
-
-        // 5. 반복 일정 확장
-        for (Schedule repeating : repeatingSchedules) {
-            List<ScheduleView> expandedViews = expandRepeatScheduleToViews(
-                    repeating, startDate, endDate, exceptions, completions
-            );
-            views.addAll(expandedViews);
-        }
-
-        // 6. 날짜순 정렬
-        views.sort((a, b) -> {
-            int dateCompare = a.getStartDate().compareTo(b.getStartDate());
-            if (dateCompare != 0) return dateCompare;
-            return a.getStartTime().compareTo(b.getStartTime());
-        });
-
-        return views;
+        return buildScheduleViews(userId, startDate, endDate);
     }
 
     @Override
     public List<ScheduleView> getSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        return buildScheduleViews(userId, startDate, endDate);
+    }
+
+    private List<ScheduleView> buildScheduleViews(Long userId, LocalDate startDate, LocalDate endDate) {
         // 1. 일회성 일정 조회
         List<Schedule> oneTimeSchedules = loadSchedulePort.findOneTimeSchedulesByDateRange(
                 userId, startDate, endDate
@@ -207,10 +155,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
         // 5. 반복 일정 확장
         for (Schedule repeating : repeatingSchedules) {
-            List<ScheduleView> expandedViews = expandRepeatScheduleToViews(
-                    repeating, startDate, endDate, exceptions, completions
-            );
-            views.addAll(expandedViews);
+            views.addAll(expandRepeatScheduleToViews(repeating, startDate, endDate, exceptions, completions));
         }
 
         // 6. 날짜순 정렬
@@ -280,16 +225,12 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     @Override
     @Transactional
     public void deleteSchedule(Long scheduleId, Long userId) {
-        Optional<Schedule> schedule = loadSchedulePort
-                .findByIdAndUserId(scheduleId, userId);
+        Schedule schedule = loadSchedulePort
+                .findByIdAndUserId(scheduleId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
 
-        if (schedule.isPresent()) {
-            saveSchedulePort.delete(schedule.get().getId());
-            log.info("Deleted schedule {} for user {}", scheduleId, userId);
-        } else {
-            log.debug("Schedule {} not found or already deleted for user {}",
-                    scheduleId, userId);
-        }
+        saveSchedulePort.delete(schedule.getId());
+        log.info("Deleted schedule {} for user {}", scheduleId, userId);
     }
 
     // ==================== Private Helper Methods ====================
@@ -451,7 +392,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
             case "FRI" -> DayOfWeek.FRIDAY;
             case "SAT" -> DayOfWeek.SATURDAY;
             case "SUN" -> DayOfWeek.SUNDAY;
-            default -> throw new IllegalArgumentException("Invalid day: " + day);
+            default -> throw new BusinessException(ErrorCode.INVALID_INPUT);
         };
     }
 }

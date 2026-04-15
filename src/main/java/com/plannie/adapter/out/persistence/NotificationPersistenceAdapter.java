@@ -8,6 +8,8 @@ import com.plannie.domain.notification.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,20 +34,22 @@ public class NotificationPersistenceAdapter implements LoadNotificationPort, Sav
     }
 
     @Override
-    public boolean existsByScheduleId(Long scheduleId) {
-        return notificationRepository.existsByScheduleId(scheduleId);
+    public boolean existsByScheduleIdAndScheduledDate(Long scheduleId, LocalDate date) {
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+        return notificationRepository.existsByScheduleIdAndScheduledDate(scheduleId, dayStart, dayEnd);
     }
 
     @Override
     public Notification save(Notification notification) {
-        NotificationJpaEntity entity = toEntity(notification);
         if (notification.getId() != null) {
-            entity = notificationRepository.findById(notification.getId())
-                    .orElse(entity);
-            entity.markAsRead();
+            // 기존 엔티티 조회 후 도메인 상태를 그대로 반영
+            NotificationJpaEntity entity = notificationRepository.findById(notification.getId())
+                    .orElseThrow();
+            entity.updateReadStatus(notification.isRead());
             return toDomain(notificationRepository.save(entity));
         }
-        return toDomain(notificationRepository.save(entity));
+        return toDomain(notificationRepository.save(toEntity(notification)));
     }
 
     private Notification toDomain(NotificationJpaEntity entity) {
