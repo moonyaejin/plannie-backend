@@ -25,6 +25,7 @@ public interface UpdateScheduleUseCase {
             LocalDate endDate,
             LocalTime startTime,
             LocalTime endTime,
-            Long categoryId
+            Long categoryId,
+            Integer reminderMinutes  // null = 알림 없음, 5/10/30 = X분 전 알림
     ) {}
 }

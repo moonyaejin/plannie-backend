@@ -23,6 +23,7 @@ public interface CreateScheduleUseCase {
             Long categoryId,
             String repeatType,
             String repeatDays,  // "MON,TUE,WED" 형식
-            LocalDate repeatEndDate
+            LocalDate repeatEndDate,
+            Integer reminderMinutes  // null = 알림 없음, 5/10/30 = X분 전 알림
     ) {}
 }

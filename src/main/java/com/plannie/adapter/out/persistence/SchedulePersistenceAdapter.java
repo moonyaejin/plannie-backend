@@ -112,6 +112,16 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
     }
 
     @Override
+    public List<Schedule> findByDateAndStartTimeBetweenAndReminderMinutes(
+            LocalDate date, LocalTime from, LocalTime to, int reminderMinutes) {
+        return scheduleRepository.findByStartDateAndStartTimeBetweenAndReminderMinutes(
+                        date, from, to, reminderMinutes)
+                .stream()
+                .map(scheduleMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Schedule> findOneTimeSchedulesByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
         return scheduleRepository.findByUserIdAndStartDateBetweenAndRepeatType(
                         userId, startDate, endDate, ScheduleJpaEntity.RepeatType.NONE
@@ -136,7 +146,8 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
                     schedule.getEndDate(),
                     schedule.getStartTime() != null ? schedule.getStartTime() : LocalTime.of(0, 0),
                     schedule.getEndTime() != null ? schedule.getEndTime() : LocalTime.of(23, 59),
-                    schedule.getCategoryId()
+                    schedule.getCategoryId(),
+                    schedule.getReminderMinutes()
             );
 
             return scheduleMapper.toDomain(scheduleRepository.save(existingEntity));

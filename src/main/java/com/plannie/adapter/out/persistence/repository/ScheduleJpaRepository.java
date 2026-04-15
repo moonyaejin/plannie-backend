@@ -83,4 +83,8 @@ public interface ScheduleJpaRepository extends JpaRepository<ScheduleJpaEntity, 
 
     // 알림용: 특정 날짜에 시작 시간이 범위 안에 있는 일정 조회
     List<ScheduleJpaEntity> findByStartDateAndStartTimeBetween(LocalDate startDate, LocalTime from, LocalTime to);
+
+    // 알림용: reminderMinutes 설정된 일정만 조회
+    List<ScheduleJpaEntity> findByStartDateAndStartTimeBetweenAndReminderMinutes(
+            LocalDate startDate, LocalTime from, LocalTime to, int reminderMinutes);
 }
