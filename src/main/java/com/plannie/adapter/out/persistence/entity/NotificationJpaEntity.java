@@ -60,4 +60,8 @@ public class NotificationJpaEntity {
     public void markAsRead() {
         this.read = true;
     }
+
+    public void updateReadStatus(boolean read) {
+        this.read = read;
+    }
 }

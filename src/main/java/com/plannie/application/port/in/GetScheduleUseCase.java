@@ -1,6 +1,5 @@
 package com.plannie.application.port.in;
 
-import com.plannie.adapter.in.web.dto.ScheduleView;
 import com.plannie.domain.schedule.Schedule;
 
 import java.time.LocalDate;

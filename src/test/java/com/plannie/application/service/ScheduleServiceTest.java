@@ -134,13 +134,14 @@ class ScheduleServiceTest {
     // ==================== 일정 삭제 ====================
 
     @Test
-    @DisplayName("존재하지 않는 일정 삭제 요청은 예외 없이 무시된다")
-    void 없는_일정_삭제_조용히_무시() {
+    @DisplayName("존재하지 않는 일정 삭제 요청은 SCHEDULE_NOT_FOUND 예외가 발생한다")
+    void 없는_일정_삭제_예외() {
         given(loadSchedulePort.findByIdAndUserId(99L, USER_ID)).willReturn(Optional.empty());
 
-        scheduleService.deleteSchedule(99L, USER_ID);
-
-        verify(saveSchedulePort, never()).delete(any());
+        assertThatThrownBy(() -> scheduleService.deleteSchedule(99L, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.SCHEDULE_NOT_FOUND);
     }
 
     @Test

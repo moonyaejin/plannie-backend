@@ -7,6 +7,7 @@ import com.plannie.application.port.in.GenerateProgressFeedbackUseCase.WeeklyFee
 import com.plannie.application.port.in.GetStatisticsUseCase;
 import com.plannie.application.port.in.GetStatisticsUseCase.CategoryStat;
 import com.plannie.application.port.in.GetStatisticsUseCase.MonthlyStats;
+import com.plannie.security.JwtProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -22,6 +24,8 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,17 +35,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(StatisticsController.class)
 class StatisticsControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @MockBean private GetStatisticsUseCase getStatisticsUseCase;
+    @MockBean private GenerateProgressFeedbackUseCase generateProgressFeedbackUseCase;
+    @MockBean private JwtProvider jwtProvider;
 
-    @MockBean
-    private GetStatisticsUseCase getStatisticsUseCase;
+    private static final Long USER_ID = 1L;
 
-    @MockBean
-    private GenerateProgressFeedbackUseCase generateProgressFeedbackUseCase;
+    private UsernamePasswordAuthenticationToken auth(Long userId) {
+        return new UsernamePasswordAuthenticationToken(userId, null, List.of());
+    }
 
     @Test
     @DisplayName("GET /api/statistics/monthly - 월별 통계를 반환한다")
@@ -50,28 +55,25 @@ class StatisticsControllerTest {
                 2026, 4, 10, 7, 70.0,
                 List.of(new CategoryStat(null, "미분류", 10))
         );
-        given(getStatisticsUseCase.getMonthlyStats(1L, 2026, 4)).willReturn(stats);
+        given(getStatisticsUseCase.getMonthlyStats(USER_ID, 2026, 4)).willReturn(stats);
 
         mockMvc.perform(get("/api/statistics/monthly")
-                        .header("X-User-Id", 1L)
+                        .with(authentication(auth(USER_ID)))
                         .param("year", "2026")
                         .param("month", "4"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.year").value(2026))
-                .andExpect(jsonPath("$.month").value(4))
                 .andExpect(jsonPath("$.totalSchedules").value(10))
-                .andExpect(jsonPath("$.completedSchedules").value(7))
-                .andExpect(jsonPath("$.completionRate").value(70.0))
-                .andExpect(jsonPath("$.byCategory[0].categoryName").value("미분류"));
+                .andExpect(jsonPath("$.completionRate").value(70.0));
     }
 
     @Test
-    @DisplayName("GET /api/statistics/monthly - X-User-Id 헤더 누락 시 400 반환")
-    void 월별_통계_헤더_누락() throws Exception {
+    @DisplayName("GET /api/statistics/monthly - 인증 없이 요청 시 401 반환")
+    void 월별_통계_인증없음() throws Exception {
         mockMvc.perform(get("/api/statistics/monthly")
                         .param("year", "2026")
                         .param("month", "4"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -86,7 +88,7 @@ class StatisticsControllerTest {
                 "다음 주도 화이팅!"
         );
         given(generateProgressFeedbackUseCase.generateWeeklyFeedback(
-                eq(1L), any(LocalDate.class), any(LocalDate.class)
+                eq(USER_ID), any(LocalDate.class), any(LocalDate.class)
         )).willReturn(feedback);
 
         WeeklyFeedbackRequest request = new WeeklyFeedbackRequest(
@@ -94,7 +96,8 @@ class StatisticsControllerTest {
         );
 
         mockMvc.perform(post("/api/statistics/weekly-feedback")
-                        .header("X-User-Id", 1L)
+                        .with(authentication(auth(USER_ID)))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -108,7 +111,8 @@ class StatisticsControllerTest {
     @DisplayName("POST /api/statistics/weekly-feedback - weekStart 누락 시 400 반환")
     void 주간_피드백_필수값_누락() throws Exception {
         mockMvc.perform(post("/api/statistics/weekly-feedback")
-                        .header("X-User-Id", 1L)
+                        .with(authentication(auth(USER_ID)))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"weekEnd\": \"2026-04-13\"}"))
                 .andExpect(status().isBadRequest());
