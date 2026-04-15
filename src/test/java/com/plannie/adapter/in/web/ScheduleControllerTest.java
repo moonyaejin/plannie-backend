@@ -9,6 +9,7 @@ import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.schedule.RepeatRule;
 import com.plannie.domain.schedule.Schedule;
+import com.plannie.security.JwtProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16,10 +17,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +30,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -42,9 +47,14 @@ class ScheduleControllerTest {
     @MockBean private UpdateScheduleUseCase updateScheduleUseCase;
     @MockBean private DeleteScheduleUseCase deleteScheduleUseCase;
     @MockBean private ParseScheduleUseCase parseScheduleUseCase;
+    @MockBean private JwtProvider jwtProvider;
 
     private static final Long USER_ID = 1L;
     private static final LocalDate DATE = LocalDate.of(2026, 4, 15);
+
+    private UsernamePasswordAuthenticationToken auth(Long userId) {
+        return new UsernamePasswordAuthenticationToken(userId, null, List.of());
+    }
 
     private Schedule schedule(Long id) {
         return Schedule.builder()
@@ -73,7 +83,8 @@ class ScheduleControllerTest {
         given(createScheduleUseCase.createSchedule(any())).willReturn(schedule(1L));
 
         mockMvc.perform(post("/api/schedules")
-                        .header("X-User-Id", USER_ID)
+                        .with(authentication(auth(USER_ID)))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody()))
                 .andExpect(status().isCreated())
@@ -85,7 +96,8 @@ class ScheduleControllerTest {
     @DisplayName("POST /api/schedules - title 누락 시 400을 반환한다")
     void 일정_생성_title_누락() throws Exception {
         mockMvc.perform(post("/api/schedules")
-                        .header("X-User-Id", USER_ID)
+                        .with(authentication(auth(USER_ID)))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -105,7 +117,7 @@ class ScheduleControllerTest {
         given(getScheduleUseCase.getSchedule(1L, USER_ID)).willReturn(Optional.of(schedule(1L)));
 
         mockMvc.perform(get("/api/schedules/1")
-                        .header("X-User-Id", USER_ID))
+                        .with(authentication(auth(USER_ID))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.title").value("스프링 공부"))
@@ -118,7 +130,7 @@ class ScheduleControllerTest {
         given(getScheduleUseCase.getSchedule(eq(999L), eq(USER_ID))).willReturn(Optional.empty());
 
         mockMvc.perform(get("/api/schedules/999")
-                        .header("X-User-Id", USER_ID))
+                        .with(authentication(auth(USER_ID))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("S001"));
     }
@@ -131,7 +143,8 @@ class ScheduleControllerTest {
         doNothing().when(deleteScheduleUseCase).deleteSchedule(1L, USER_ID);
 
         mockMvc.perform(delete("/api/schedules/1")
-                        .header("X-User-Id", USER_ID))
+                        .with(authentication(auth(USER_ID)))
+                        .with(csrf()))
                 .andExpect(status().isNoContent());
     }
 
@@ -143,7 +156,8 @@ class ScheduleControllerTest {
         doNothing().when(updateScheduleUseCase).toggleComplete(1L, USER_ID);
 
         mockMvc.perform(patch("/api/schedules/1/toggle")
-                        .header("X-User-Id", USER_ID))
+                        .with(authentication(auth(USER_ID)))
+                        .with(csrf()))
                 .andExpect(status().isOk());
     }
 
@@ -154,7 +168,8 @@ class ScheduleControllerTest {
                 .when(updateScheduleUseCase).toggleComplete(eq(999L), eq(USER_ID));
 
         mockMvc.perform(patch("/api/schedules/999/toggle")
-                        .header("X-User-Id", USER_ID))
+                        .with(authentication(auth(USER_ID)))
+                        .with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("S001"));
     }

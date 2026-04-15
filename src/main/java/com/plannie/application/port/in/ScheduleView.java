@@ -1,4 +1,4 @@
-package com.plannie.adapter.in.web.dto;
+package com.plannie.application.port.in;
 
 import lombok.Builder;
 import lombok.Getter;

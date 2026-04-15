@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,7 +59,7 @@ class NotificationServiceTest {
         Schedule upcoming = schedule(1L, 10L, "스프링 공부", LocalTime.now().plusMinutes(30));
         given(loadSchedulePort.findByDateAndStartTimeBetween(any(), any(), any()))
                 .willReturn(List.of(upcoming));
-        given(loadNotificationPort.existsByScheduleId(1L)).willReturn(false);
+        given(loadNotificationPort.existsByScheduleIdAndScheduledDate(eq(1L), any())).willReturn(false);
 
         notificationService.createUpcomingNotifications();
 
@@ -78,7 +79,7 @@ class NotificationServiceTest {
         Schedule upcoming = schedule(1L, 10L, "스프링 공부", LocalTime.now().plusMinutes(30));
         given(loadSchedulePort.findByDateAndStartTimeBetween(any(), any(), any()))
                 .willReturn(List.of(upcoming));
-        given(loadNotificationPort.existsByScheduleId(1L)).willReturn(true);
+        given(loadNotificationPort.existsByScheduleIdAndScheduledDate(eq(1L), any())).willReturn(true);
 
         notificationService.createUpcomingNotifications();
 

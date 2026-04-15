@@ -4,7 +4,7 @@ import com.plannie.adapter.in.web.dto.ParseScheduleRequest;
 import com.plannie.adapter.in.web.dto.ParseScheduleResponse;
 import com.plannie.adapter.in.web.dto.ScheduleRequest;
 import com.plannie.adapter.in.web.dto.ScheduleResponse;
-import com.plannie.adapter.in.web.dto.ScheduleView;
+import com.plannie.application.port.in.ScheduleView;
 import com.plannie.application.port.in.CreateScheduleUseCase;
 import com.plannie.application.port.in.CreateScheduleUseCase.CreateScheduleCommand;
 import com.plannie.application.port.in.DeleteScheduleUseCase;
