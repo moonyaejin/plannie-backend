@@ -11,11 +11,10 @@ public class StudySession {
 
     private final Long id;
     private final Long userId;
-    private final String subject;    // 과목명 (유저 자유 입력)
-    private final Long categoryId;   // 선택 연결
+    private final Long subjectId;
     private final LocalDateTime startedAt;
     private LocalDateTime endedAt;
-    private Integer durationMinutes; // 종료 시 자동 계산
+    private Integer durationMinutes;
 
     public boolean isActive() {
         return endedAt == null;
