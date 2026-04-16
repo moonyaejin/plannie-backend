@@ -41,8 +41,17 @@ public class RedisConfig {
                         .fromSerializer(serializer))
                 .disableCachingNullValues();
 
+        RedisCacheConfiguration scheduleConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10))
+                .serializeKeysWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(serializer))
+                .disableCachingNullValues();
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .withCacheConfiguration("schedules:monthly", scheduleConfig)
                 .build();
     }
 }
