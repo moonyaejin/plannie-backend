@@ -15,6 +15,8 @@ import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.schedule.ScheduleException;
 import com.plannie.domain.schedule.RepeatRule.RepeatType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
+    @CacheEvict(value = "schedules:monthly", key = "#command.userId() + ':' + #command.startDate().getYear() + ':' + #command.startDate().getMonthValue()")
     public Schedule createSchedule(CreateScheduleCommand command) {
         // 1. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
@@ -102,6 +105,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     }
 
     @Override
+    @Cacheable(value = "schedules:monthly", key = "#userId + ':' + #year + ':' + #month")
     public List<ScheduleView> getSchedulesByMonth(Long userId, int year, int month) {
         LocalDate startDate = LocalDate.of(year, month, 1);
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
@@ -173,6 +177,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
+    @CacheEvict(value = "schedules:monthly", allEntries = true)
     public Schedule updateSchedule(UpdateScheduleCommand command) {
         // 1. 기존 일정 조회 + 권한 확인
         Schedule existingSchedule = loadSchedulePort
@@ -200,6 +205,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
+    @CacheEvict(value = "schedules:monthly", allEntries = true)
     public void toggleComplete(Long scheduleId, Long userId) {
         // 권한 확인
         Schedule schedule = loadSchedulePort
@@ -212,6 +218,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     // 반복 일정의 특정 날짜 완료 토글
     @Transactional
+    @CacheEvict(value = "schedules:monthly", allEntries = true)
     public void toggleRecurringComplete(Long scheduleId, LocalDate date, Long userId) {
         // 권한 확인
         Schedule schedule = loadSchedulePort
@@ -226,6 +233,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
+    @CacheEvict(value = "schedules:monthly", allEntries = true)
     public void deleteSchedule(Long scheduleId, Long userId) {
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)
