@@ -33,4 +33,7 @@ public interface StudySessionJpaRepository extends JpaRepository<StudySessionJpa
             @Param("userId") Long userId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
+
+    // 과목별 전체 세션 조회
+    List<StudySessionJpaEntity> findByUserIdAndSubjectId(Long userId, Long subjectId);
 }

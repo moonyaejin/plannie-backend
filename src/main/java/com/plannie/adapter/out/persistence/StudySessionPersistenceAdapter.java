@@ -21,23 +21,18 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
 
     @Override
     public StudySession save(StudySession session) {
-        StudySessionJpaEntity entity;
-
         if (session.getId() != null) {
-            entity = repository.findById(session.getId()).orElseThrow();
+            StudySessionJpaEntity entity = repository.findById(session.getId()).orElseThrow();
             if (!session.isActive()) {
                 entity.stop(session.getEndedAt(), session.getDurationMinutes());
             }
-        } else {
-            entity = StudySessionJpaEntity.builder()
-                    .userId(session.getUserId())
-                    .subject(session.getSubject())
-                    .categoryId(session.getCategoryId())
-                    .startedAt(session.getStartedAt())
-                    .build();
+            return toDomain(repository.save(entity));
         }
-
-        return toDomain(repository.save(entity));
+        return toDomain(repository.save(StudySessionJpaEntity.builder()
+                .userId(session.getUserId())
+                .subjectId(session.getSubjectId())
+                .startedAt(session.getStartedAt())
+                .build()));
     }
 
     @Override
@@ -68,12 +63,17 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
                 .stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public List<StudySession> findByUserIdAndSubjectId(Long userId, Long subjectId) {
+        return repository.findByUserIdAndSubjectId(userId, subjectId)
+                .stream().map(this::toDomain).toList();
+    }
+
     private StudySession toDomain(StudySessionJpaEntity entity) {
         return StudySession.builder()
                 .id(entity.getId())
                 .userId(entity.getUserId())
-                .subject(entity.getSubject())
-                .categoryId(entity.getCategoryId())
+                .subjectId(entity.getSubjectId())
                 .startedAt(entity.getStartedAt())
                 .endedAt(entity.getEndedAt())
                 .durationMinutes(entity.getDurationMinutes())

@@ -2,9 +2,11 @@ package com.plannie.application.service;
 
 import com.plannie.application.port.in.StudySessionUseCase;
 import com.plannie.application.port.out.StudySessionPort;
+import com.plannie.application.port.out.StudySubjectPort;
 import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.studysession.StudySession;
+import com.plannie.domain.studysession.StudySubject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,19 +25,23 @@ import java.util.stream.Collectors;
 public class StudySessionService implements StudySessionUseCase {
 
     private final StudySessionPort studySessionPort;
+    private final StudySubjectPort studySubjectPort;
 
     @Override
     @Transactional
     public StudySession start(StartCommand command) {
-        // 이미 진행 중인 세션이 있으면 거부
+        // 과목 존재 + 권한 확인
+        studySubjectPort.findByIdAndUserId(command.subjectId(), command.userId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.STUDY_SUBJECT_NOT_FOUND));
+
+        // 이미 진행 중인 세션 확인
         studySessionPort.findActiveByUserId(command.userId()).ifPresent(s -> {
             throw new BusinessException(ErrorCode.STUDY_SESSION_ALREADY_ACTIVE);
         });
 
         StudySession session = StudySession.builder()
                 .userId(command.userId())
-                .subject(command.subject())
-                .categoryId(command.categoryId())
+                .subjectId(command.subjectId())
                 .startedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")))
                 .build();
 
@@ -71,19 +77,26 @@ public class StudySessionService implements StudySessionUseCase {
     public List<SubjectSummary> getSummary(Long userId, LocalDate startDate, LocalDate endDate) {
         List<StudySession> sessions = studySessionPort.findByUserIdAndDateRange(userId, startDate, endDate);
 
-        // subject + categoryId 기준으로 그룹핑 후 합산
-        Map<String, List<StudySession>> grouped = sessions.stream()
-                .filter(s -> !s.isActive()) // 진행 중인 세션 제외
-                .collect(Collectors.groupingBy(StudySession::getSubject));
+        // 과목 정보 조회 (이름, 색상)
+        Map<Long, StudySubject> subjectMap = studySubjectPort.findAllByUserId(userId).stream()
+                .collect(Collectors.toMap(StudySubject::getId, s -> s));
+
+        // subjectId 기준으로 그룹핑 후 합산
+        Map<Long, List<StudySession>> grouped = sessions.stream()
+                .filter(s -> !s.isActive())
+                .collect(Collectors.groupingBy(StudySession::getSubjectId));
 
         return grouped.entrySet().stream()
                 .map(entry -> {
+                    Long subjectId = entry.getKey();
                     List<StudySession> group = entry.getValue();
                     int totalMinutes = group.stream()
                             .mapToInt(s -> s.getDurationMinutes() != null ? s.getDurationMinutes() : 0)
                             .sum();
-                    Long categoryId = group.get(0).getCategoryId();
-                    return new SubjectSummary(entry.getKey(), categoryId, totalMinutes, group.size());
+                    StudySubject subject = subjectMap.get(subjectId);
+                    String name = subject != null ? subject.getName() : "삭제된 과목";
+                    String color = subject != null ? subject.getColor() : null;
+                    return new SubjectSummary(subjectId, name, color, totalMinutes, group.size());
                 })
                 .sorted((a, b) -> b.totalMinutes() - a.totalMinutes())
                 .toList();

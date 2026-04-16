@@ -17,4 +17,6 @@ public interface StudySessionPort {
     List<StudySession> findByUserIdAndDate(Long userId, LocalDate date);
 
     List<StudySession> findByUserIdAndDateRange(Long userId, LocalDate startDate, LocalDate endDate);
+
+    List<StudySession> findByUserIdAndSubjectId(Long userId, Long subjectId);
 }
