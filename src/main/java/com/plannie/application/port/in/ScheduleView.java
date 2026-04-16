@@ -1,12 +1,16 @@
 package com.plannie.application.port.in;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScheduleView {
     private Long id;
     private String instanceId;  // "scheduleId_date" 형식
