@@ -32,6 +32,15 @@ public enum ErrorCode {
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "알림을 찾을 수 없습니다."),
 
+    // StudySubject
+    STUDY_SUBJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "SS001", "과목을 찾을 수 없습니다."),
+    STUDY_SUBJECT_DUPLICATE(HttpStatus.CONFLICT, "SS002", "이미 같은 이름의 과목이 있습니다."),
+
+    // StudySession
+    STUDY_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SS003", "공부 세션을 찾을 수 없습니다."),
+    STUDY_SESSION_ALREADY_ACTIVE(HttpStatus.CONFLICT, "SS004", "이미 진행 중인 세션이 있습니다."),
+    STUDY_SESSION_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "SS005", "진행 중인 세션이 아닙니다."),
+
     // External API
     OPENAI_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "E001", "AI 서비스 연동 중 오류가 발생했습니다."),
     OPENAI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "E002", "자연어 파싱에 실패했습니다.");
