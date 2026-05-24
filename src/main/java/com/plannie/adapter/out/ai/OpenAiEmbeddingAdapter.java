@@ -41,6 +41,9 @@ public class OpenAiEmbeddingAdapter implements EmbedTextPort {
                 .sorted((a, b) -> Integer.compare(a.index(), b.index()))
                 .map(d -> {
                     List<Float> floats = d.embedding();
+                    if (floats == null || floats.isEmpty()) {
+                        throw new BusinessException(ErrorCode.OPENAI_PARSE_ERROR);
+                    }
                     float[] arr = new float[floats.size()];
                     for (int i = 0; i < floats.size(); i++) arr[i] = floats.get(i);
                     return arr;
