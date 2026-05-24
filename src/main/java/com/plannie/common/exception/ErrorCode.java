@@ -41,6 +41,11 @@ public enum ErrorCode {
     STUDY_SESSION_ALREADY_ACTIVE(HttpStatus.CONFLICT, "SS004", "이미 진행 중인 세션이 있습니다."),
     STUDY_SESSION_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "SS005", "진행 중인 세션이 아닙니다."),
 
+    // Document
+    DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "D001", "문서를 찾을 수 없습니다."),
+    DOCUMENT_PARSE_ERROR(HttpStatus.BAD_REQUEST, "D002", "문서 파싱에 실패했습니다."),
+    DOCUMENT_NO_CONTEXT(HttpStatus.BAD_REQUEST, "D003", "질문과 관련된 내용을 문서에서 찾을 수 없습니다."),
+
     // External API
     OPENAI_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "E001", "AI 서비스 연동 중 오류가 발생했습니다."),
     OPENAI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "E002", "자연어 파싱에 실패했습니다.");
