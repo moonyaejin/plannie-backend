@@ -47,7 +47,7 @@ resilience4j:
         exponential-backoff-multiplier: 2
 
 ---
-# Local 환경
+# Local 환경 (H2, RAG 기능 미포함)
 spring:
   config:
     activate:
@@ -71,6 +71,54 @@ spring:
 
   cache:
     type: simple  # 로컬: 인메모리 캐시 (Redis 불필요). 프로덕션은 redis로 변경
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+logging:
+  level:
+    com.plannie: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+openai:
+  api-key: ${OPENAI_API_KEY:your-api-key}
+  model: gpt-4o
+
+jwt:
+  secret: ${JWT_SECRET:plannie-local-dev-secret-key-must-be-at-least-32-chars}
+  expiration-ms: 86400000  # 24시간
+
+---
+# Local PostgreSQL 환경 (RAG 기능 포함, docker-compose 필요)
+spring:
+  config:
+    activate:
+      on-profile: local-pg
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/plannie
+    username: plannie
+    password: plannie
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/migration/V1__create_rag_tables.sql
+
+  cache:
+    type: simple
 
   data:
     redis:
