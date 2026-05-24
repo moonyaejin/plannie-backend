@@ -33,13 +33,13 @@ public enum ErrorCode {
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "알림을 찾을 수 없습니다."),
 
     // StudySubject
-    STUDY_SUBJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "SS001", "과목을 찾을 수 없습니다."),
-    STUDY_SUBJECT_DUPLICATE(HttpStatus.CONFLICT, "SS002", "이미 같은 이름의 과목이 있습니다."),
+    STUDY_SUBJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "SJ001", "과목을 찾을 수 없습니다."),
+    STUDY_SUBJECT_DUPLICATE(HttpStatus.CONFLICT, "SJ002", "이미 같은 이름의 과목이 있습니다."),
 
     // StudySession
-    STUDY_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SS003", "공부 세션을 찾을 수 없습니다."),
-    STUDY_SESSION_ALREADY_ACTIVE(HttpStatus.CONFLICT, "SS004", "이미 진행 중인 세션이 있습니다."),
-    STUDY_SESSION_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "SS005", "진행 중인 세션이 아닙니다."),
+    STUDY_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SE001", "공부 세션을 찾을 수 없습니다."),
+    STUDY_SESSION_ALREADY_ACTIVE(HttpStatus.CONFLICT, "SE002", "이미 진행 중인 세션이 있습니다."),
+    STUDY_SESSION_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "SE003", "진행 중인 세션이 아닙니다."),
 
     // Document
     DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "D001", "문서를 찾을 수 없습니다."),

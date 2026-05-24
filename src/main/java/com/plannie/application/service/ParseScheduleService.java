@@ -18,6 +18,7 @@ public class ParseScheduleService implements ParseScheduleUseCase {
     private final SaveSchedulePort saveSchedulePort;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public Schedule parseAndCreate(ParseScheduleCommand command) {
         ParseScheduleWithAiPort.ParsedScheduleResult parsed =
                 parseScheduleWithAiPort.parse(command.naturalLanguage(), LocalDate.now());

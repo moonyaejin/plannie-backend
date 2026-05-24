@@ -19,7 +19,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -143,7 +142,7 @@ public class OpenAiStudyPlanAdapter implements GenerateStudyPlanWithAiPort {
 
         List<AiScheduleItem> items = gpt.schedules().stream()
                 .map(s -> new AiScheduleItem(s.title(), s.memo(), s.date(), s.startTime(), s.endTime(), s.week()))
-                .collect(Collectors.toList());
+                .toList();
 
         return new AiStudyPlan(gpt.planSummary(), gpt.weeklyGoals(), items);
     }

@@ -92,7 +92,7 @@ public class ScheduleMapper {
                     entity.getRepeatDayOfMonth(),
                     entity.getRepeatEndDate()
             );
-            default -> RepeatRule.none();
+            case NONE -> RepeatRule.none();
         };
     }
 
@@ -135,7 +135,7 @@ public class ScheduleMapper {
             case DAILY -> ScheduleJpaEntity.RepeatType.DAILY;
             case WEEKLY -> ScheduleJpaEntity.RepeatType.WEEKLY;
             case MONTHLY -> ScheduleJpaEntity.RepeatType.MONTHLY;
-            default -> ScheduleJpaEntity.RepeatType.NONE;
+            case NONE -> ScheduleJpaEntity.RepeatType.NONE;
         };
     }
 
