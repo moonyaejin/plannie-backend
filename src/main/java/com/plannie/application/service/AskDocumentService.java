@@ -31,6 +31,6 @@ public class AskDocumentService implements AskDocumentUseCase {
         }
 
         String answer = generateRagAnswerPort.generate(command.question(), contextChunks);
-        return new Answer(answer, command.question());
+        return new Answer(command.question(), answer);
     }
 }

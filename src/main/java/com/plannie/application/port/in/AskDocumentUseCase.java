@@ -4,7 +4,7 @@ public interface AskDocumentUseCase {
 
     record Command(Long userId, String question) {}
 
-    record Answer(String answer, String question) {}
+    record Answer(String question, String answer) {}
 
     Answer ask(Command command);
 }
