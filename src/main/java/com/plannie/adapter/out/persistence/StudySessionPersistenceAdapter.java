@@ -3,6 +3,8 @@ package com.plannie.adapter.out.persistence;
 import com.plannie.adapter.out.persistence.entity.StudySessionJpaEntity;
 import com.plannie.adapter.out.persistence.repository.StudySessionJpaRepository;
 import com.plannie.application.port.out.StudySessionPort;
+import com.plannie.common.exception.BusinessException;
+import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.studysession.StudySession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -22,7 +24,8 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
     @Override
     public StudySession save(StudySession session) {
         if (session.getId() != null) {
-            StudySessionJpaEntity entity = repository.findById(session.getId()).orElseThrow();
+            StudySessionJpaEntity entity = repository.findById(session.getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.STUDY_SESSION_NOT_FOUND));
             if (!session.isActive()) {
                 entity.stop(session.getEndedAt(), session.getDurationMinutes());
             }

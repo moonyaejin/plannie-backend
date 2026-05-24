@@ -208,7 +208,7 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
         } catch (DataIntegrityViolationException e) {
             ScheduleCompletionEntity existing = scheduleCompletionRepository
                     .findByScheduleIdAndCompletionDate(scheduleId, date)
-                    .orElseThrow();
+                    .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
             existing.toggleComplete();
             scheduleCompletionRepository.save(existing);
         }

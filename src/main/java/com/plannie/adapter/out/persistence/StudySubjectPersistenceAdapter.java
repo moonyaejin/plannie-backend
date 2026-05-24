@@ -3,6 +3,8 @@ package com.plannie.adapter.out.persistence;
 import com.plannie.adapter.out.persistence.entity.StudySubjectJpaEntity;
 import com.plannie.adapter.out.persistence.repository.StudySubjectJpaRepository;
 import com.plannie.application.port.out.StudySubjectPort;
+import com.plannie.common.exception.BusinessException;
+import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.studysession.StudySubject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,7 +21,8 @@ public class StudySubjectPersistenceAdapter implements StudySubjectPort {
     @Override
     public StudySubject save(StudySubject subject) {
         if (subject.getId() != null) {
-            StudySubjectJpaEntity entity = repository.findById(subject.getId()).orElseThrow();
+            StudySubjectJpaEntity entity = repository.findById(subject.getId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.STUDY_SUBJECT_NOT_FOUND));
             entity.update(subject.getName(), subject.getColor());
             return toDomain(repository.save(entity));
         }
