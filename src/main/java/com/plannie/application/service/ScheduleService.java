@@ -42,7 +42,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
-    @CacheEvict(value = "schedules:monthly", allEntries = true)
+    @CacheEvict(value = {"schedules:monthly", "statistics:monthly"}, allEntries = true)
     public Schedule createSchedule(CreateScheduleCommand command) {
         // 1. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
@@ -177,7 +177,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
-    @CacheEvict(value = "schedules:monthly", allEntries = true)
+    @CacheEvict(value = {"schedules:monthly", "statistics:monthly"}, allEntries = true)
     public Schedule updateSchedule(UpdateScheduleCommand command) {
         // 1. 기존 일정 조회 + 권한 확인
         Schedule existingSchedule = loadSchedulePort
@@ -205,7 +205,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
-    @CacheEvict(value = "schedules:monthly", allEntries = true)
+    @CacheEvict(value = {"schedules:monthly", "statistics:monthly"}, allEntries = true)
     public void toggleComplete(Long scheduleId, Long userId) {
         loadSchedulePort.findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
@@ -213,7 +213,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     }
 
     @Transactional
-    @CacheEvict(value = "schedules:monthly", allEntries = true)
+    @CacheEvict(value = {"schedules:monthly", "statistics:monthly"}, allEntries = true)
     public void toggleRecurringComplete(Long scheduleId, LocalDate date, Long userId) {
         loadSchedulePort.findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
@@ -224,7 +224,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
-    @CacheEvict(value = "schedules:monthly", allEntries = true)
+    @CacheEvict(value = {"schedules:monthly", "statistics:monthly"}, allEntries = true)
     public void deleteSchedule(Long scheduleId, Long userId) {
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)

@@ -8,14 +8,18 @@ import com.plannie.application.port.in.GetStatisticsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Statistics", description = "통계 및 진도 분석 API")
 @RestController
 @RequestMapping("/api/statistics")
 @RequiredArgsConstructor
+@Validated
 public class StatisticsController {
 
     private final GetStatisticsUseCase getStatisticsUseCase;
@@ -26,8 +30,8 @@ public class StatisticsController {
     @GetMapping("/monthly")
     public MonthlyStatsResponse getMonthlyStats(
             @AuthenticationPrincipal Long userId,
-            @RequestParam int year,
-            @RequestParam int month) {
+            @RequestParam @Min(1900) @Max(2100) int year,
+            @RequestParam @Min(1) @Max(12) int month) {
 
         return MonthlyStatsResponse.from(getStatisticsUseCase.getMonthlyStats(userId, year, month));
     }

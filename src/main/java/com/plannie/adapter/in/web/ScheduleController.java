@@ -19,11 +19,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -33,6 +36,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/schedules")
 @RequiredArgsConstructor
+@Validated
 public class ScheduleController {
 
     private final CreateScheduleUseCase createScheduleUseCase;
@@ -117,8 +121,8 @@ public class ScheduleController {
     @GetMapping("/month/{year}/{month}")
     public ResponseEntity<List<ScheduleView>> getSchedulesByMonth(
             @AuthenticationPrincipal Long userId,
-            @PathVariable int year,
-            @PathVariable int month) {
+            @PathVariable @Min(1900) @Max(2100) int year,
+            @PathVariable @Min(1) @Max(12) int month) {
 
         List<ScheduleView> schedules = getScheduleUseCase.getSchedulesByMonth(userId, year, month);
         return ResponseEntity.ok(schedules);
