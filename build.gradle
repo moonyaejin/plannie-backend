@@ -33,6 +33,13 @@ dependencies {
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2' // 테스트용
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // pgvector (벡터 유사도 검색)
+    implementation 'com.pgvector:pgvector:0.1.6'
+
+    // PDF 파싱
+    implementation 'org.apache.pdfbox:pdfbox:3.0.1'
 
     // QueryDSL
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
