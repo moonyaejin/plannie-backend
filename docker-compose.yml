@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: plannie-postgres
+    environment:
+      POSTGRES_DB: plannie
+      POSTGRES_USER: plannie
+      POSTGRES_PASSWORD: plannie
+    ports:
+      - "5432:5432"
+    volumes:
+      - plannie-pgdata:/var/lib/postgresql/data
+
+volumes:
+  plannie-pgdata:
