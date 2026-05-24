@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "schedule_completions",
@@ -38,12 +39,12 @@ public class ScheduleCompletionEntity {
         this.completionDate = completionDate;
         this.completed = completed;
         if (completed) {
-            this.completedAt = LocalDateTime.now();
+            this.completedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         }
     }
 
     public void toggleComplete() {
         this.completed = !this.completed;
-        this.completedAt = this.completed ? LocalDateTime.now() : null;
+        this.completedAt = this.completed ? LocalDateTime.now(ZoneId.of("Asia/Seoul")) : null;
     }
 }

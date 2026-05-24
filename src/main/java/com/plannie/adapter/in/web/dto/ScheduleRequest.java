@@ -2,6 +2,7 @@ package com.plannie.adapter.in.web.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -56,4 +57,8 @@ public record ScheduleRequest(
 
         Integer reminderMinutes  // null = 알림 없음, 5/10/30 = X분 전 알림
 ) {
+    @AssertTrue(message = "알림은 5분, 10분, 30분 전만 지원합니다")
+    public boolean isValidReminderMinutes() {
+        return reminderMinutes == null || reminderMinutes == 5 || reminderMinutes == 10 || reminderMinutes == 30;
+    }
 }

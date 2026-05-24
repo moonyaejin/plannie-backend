@@ -3,6 +3,7 @@ package com.plannie.domain.document;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Getter
 public class Document {
@@ -22,6 +23,6 @@ public class Document {
     }
 
     public static Document create(Long userId, String fileName, String fileType) {
-        return new Document(null, userId, fileName, fileType, LocalDateTime.now());
+        return new Document(null, userId, fileName, fileType, LocalDateTime.now(ZoneId.of("Asia/Seoul")));
     }
 }

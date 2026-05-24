@@ -31,6 +31,7 @@ import java.util.Set;
 public class DocumentController {
 
     private static final Set<String> ALLOWED_TYPES = Set.of("pdf", "txt");
+    private static final long MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024L; // 10MB
 
     private final UploadDocumentUseCase uploadDocumentUseCase;
     private final GetDocumentsUseCase getDocumentsUseCase;
@@ -51,6 +52,10 @@ public class DocumentController {
 
         if (!ALLOWED_TYPES.contains(ext)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "PDF 또는 TXT 파일만 업로드 가능합니다.");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT, "파일 크기는 10MB 이하여야 합니다.");
         }
 
         return DocumentUploadResponse.from(
