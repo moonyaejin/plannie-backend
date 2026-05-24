@@ -42,7 +42,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     @Transactional
-    @CacheEvict(value = "schedules:monthly", key = "#command.userId() + ':' + #command.startDate().getYear() + ':' + #command.startDate().getMonthValue()")
+    @CacheEvict(value = "schedules:monthly", allEntries = true)
     public Schedule createSchedule(CreateScheduleCommand command) {
         // 1. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
