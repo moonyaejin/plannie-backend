@@ -71,12 +71,13 @@ class GenerateWeeklyReportServiceTest {
     @Test
     @DisplayName("일정과 공부 시간을 집계하여 AI 분석 결과를 포함한 주간 리포트를 반환한다")
     void 주간_리포트_생성_성공() {
-        given(loadSchedulePort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of(
                         schedule(1L, "수학 공부", true),
                         schedule(2L, "영어 공부", true),
                         schedule(3L, "운동", false)
                 ));
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID)).willReturn(List.of());
         given(studySessionPort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of(
                         session(1L, 10L, 60),
@@ -104,8 +105,9 @@ class GenerateWeeklyReportServiceTest {
     @Test
     @DisplayName("일정이 없으면 완료율은 0.0이다")
     void 일정_없을_때_완료율_0() {
-        given(loadSchedulePort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of());
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID)).willReturn(List.of());
         given(studySessionPort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of());
         given(studySubjectPort.findAllByUserId(USER_ID)).willReturn(List.of());
@@ -121,8 +123,9 @@ class GenerateWeeklyReportServiceTest {
     @Test
     @DisplayName("삭제된 과목의 세션은 '삭제된 과목'으로 표시된다")
     void 삭제된_과목_세션_처리() {
-        given(loadSchedulePort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of());
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID)).willReturn(List.of());
         given(studySessionPort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of(session(1L, 99L, 45))); // 존재하지 않는 subjectId
         given(studySubjectPort.findAllByUserId(USER_ID)).willReturn(List.of());

@@ -66,8 +66,9 @@ class StatisticsServiceTest {
     @Test
     @DisplayName("일정이 없으면 완료율 0%, 카테고리 목록 비어있음")
     void 일정_없을때_통계() {
-        given(loadSchedulePort.findByUserIdAndDateRange(eq(USER_ID), any(), any()))
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(eq(USER_ID), any(), any()))
                 .willReturn(List.of());
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID)).willReturn(List.of());
 
         MonthlyStats stats = statisticsService.getMonthlyStats(USER_ID, 2026, 4);
 
@@ -80,12 +81,13 @@ class StatisticsServiceTest {
     @Test
     @DisplayName("완료된 일정과 미완료 일정이 섞여 있으면 완료율을 올바르게 계산한다")
     void 완료율_계산() {
-        given(loadSchedulePort.findByUserIdAndDateRange(eq(USER_ID), any(), any()))
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(eq(USER_ID), any(), any()))
                 .willReturn(List.of(
                         schedule(1L, "일정A", true, null),
                         schedule(2L, "일정B", true, null),
                         schedule(3L, "일정C", false, null)
                 ));
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID)).willReturn(List.of());
 
         MonthlyStats stats = statisticsService.getMonthlyStats(USER_ID, 2026, 4);
 
@@ -97,13 +99,14 @@ class StatisticsServiceTest {
     @Test
     @DisplayName("카테고리가 있는 일정은 카테고리명으로, 없는 일정은 미분류로 집계된다")
     void 카테고리별_집계() {
-        given(loadSchedulePort.findByUserIdAndDateRange(eq(USER_ID), any(), any()))
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(eq(USER_ID), any(), any()))
                 .willReturn(List.of(
                         schedule(1L, "업무1", false, 1L),
                         schedule(2L, "업무2", false, 1L),
                         schedule(3L, "공부1", false, 2L),
                         schedule(4L, "미분류", false, null)
                 ));
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID)).willReturn(List.of());
 
         MonthlyStats stats = statisticsService.getMonthlyStats(USER_ID, 2026, 4);
 
@@ -122,13 +125,14 @@ class StatisticsServiceTest {
     @Test
     @DisplayName("카테고리별 집계는 일정 수 내림차순으로 정렬된다")
     void 카테고리_내림차순_정렬() {
-        given(loadSchedulePort.findByUserIdAndDateRange(eq(USER_ID), any(), any()))
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(eq(USER_ID), any(), any()))
                 .willReturn(List.of(
                         schedule(1L, "공부1", false, 2L),
                         schedule(2L, "업무1", false, 1L),
                         schedule(3L, "업무2", false, 1L),
                         schedule(4L, "업무3", false, 1L)
                 ));
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID)).willReturn(List.of());
 
         MonthlyStats stats = statisticsService.getMonthlyStats(USER_ID, 2026, 4);
 

@@ -4,6 +4,8 @@ import com.plannie.adapter.out.persistence.entity.NotificationJpaEntity;
 import com.plannie.adapter.out.persistence.repository.NotificationJpaRepository;
 import com.plannie.application.port.out.LoadNotificationPort;
 import com.plannie.application.port.out.SaveNotificationPort;
+import com.plannie.common.exception.BusinessException;
+import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.notification.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -45,7 +47,7 @@ public class NotificationPersistenceAdapter implements LoadNotificationPort, Sav
         if (notification.getId() != null) {
             // 기존 엔티티 조회 후 도메인 상태를 그대로 반영
             NotificationJpaEntity entity = notificationRepository.findById(notification.getId())
-                    .orElseThrow();
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
             entity.updateReadStatus(notification.isRead());
             return toDomain(notificationRepository.save(entity));
         }

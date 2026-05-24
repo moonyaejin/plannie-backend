@@ -207,25 +207,16 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     @Transactional
     @CacheEvict(value = "schedules:monthly", allEntries = true)
     public void toggleComplete(Long scheduleId, Long userId) {
-        // 권한 확인
-        Schedule schedule = loadSchedulePort
-                .findByIdAndUserId(scheduleId, userId)
+        loadSchedulePort.findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
-
-        // 일회성 일정 완료 토글
         saveSchedulePort.toggleComplete(scheduleId);
     }
 
-    // 반복 일정의 특정 날짜 완료 토글
     @Transactional
     @CacheEvict(value = "schedules:monthly", allEntries = true)
     public void toggleRecurringComplete(Long scheduleId, LocalDate date, Long userId) {
-        // 권한 확인
-        Schedule schedule = loadSchedulePort
-                .findByIdAndUserId(scheduleId, userId)
+        loadSchedulePort.findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
-
-        // 반복 일정의 특정 날짜 완료 토글
         saveSchedulePort.toggleCompletion(scheduleId, date);
     }
 

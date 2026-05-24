@@ -12,7 +12,6 @@ import java.time.LocalTime;
  * - 비즈니스 로직 포함
  */
 @Getter
-@Builder
 public class Schedule {
 
     private final Long id;
@@ -48,9 +47,6 @@ public class Schedule {
         this.reminderMinutes = reminderMinutes;
     }
 
-    /**
-     * 일정 시간이 다른 일정과 겹치는지 확인
-     */
     public boolean conflictsWith(Schedule other) {
         if (!this.startDate.equals(other.startDate)) {
             return false;
@@ -60,23 +56,6 @@ public class Schedule {
                  this.startTime.isAfter(other.endTime));
     }
 
-    /**
-     * 일정 완료 처리
-     */
-    public void complete() {
-        this.completed = true;
-    }
-
-    /**
-     * 일정 완료 취소
-     */
-    public void uncomplete() {
-        this.completed = false;
-    }
-
-    /**
-     * 일정 정보 수정
-     */
     public void update(String title, String memo,
                        LocalDate startDate, LocalDate endDate,
                        LocalTime startTime, LocalTime endTime,
@@ -91,17 +70,4 @@ public class Schedule {
         this.reminderMinutes = reminderMinutes;
     }
 
-    /**
-     * 반복 일정 설정
-     */
-    public void setRepeatRule(RepeatRule repeatRule) {
-        this.repeatRule = repeatRule;
-    }
-
-    /**
-     * 유효한 시간 범위인지 검증
-     */
-    public boolean isValidTimeRange() {
-        return startTime.isBefore(endTime) || startTime.equals(endTime);
-    }
 }

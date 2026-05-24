@@ -56,21 +56,6 @@ public interface ScheduleJpaRepository extends JpaRepository<ScheduleJpaEntity, 
     @Query("SELECT s FROM ScheduleJpaEntity s WHERE s.id = :id")
     Optional<ScheduleJpaEntity> findByIdWithLock(@Param("id") Long id);
 
-    /**
-     * 월별 일정 조회
-     */
-    @Query("SELECT s FROM ScheduleJpaEntity s " +
-           "WHERE s.userId = :userId " +
-           "AND YEAR(s.startDate) = :year " +
-           "AND MONTH(s.startDate) = :month " +
-           "ORDER BY s.startDate, s.startTime")
-    List<ScheduleJpaEntity> findByUserIdAndYearMonth(
-            @Param("userId") Long userId,
-            @Param("year") int year,
-            @Param("month") int month
-    );
-
-    // ScheduleJpaRepository에 추가
     List<ScheduleJpaEntity> findByUserIdAndStartDateBetweenAndRepeatType(
             Long userId,
             LocalDate startDate,

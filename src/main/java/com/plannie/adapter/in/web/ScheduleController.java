@@ -29,25 +29,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Schedule REST Controller
- *
- * 역할:
- * - HTTP 요청 수신 및 응답
- * - 요청 데이터 검증 (@Valid)
- * - DTO ↔ Command 변환
- * - UseCase 호출
- *
- * 의존성:
- * - UseCase 인터페이스만 의존 (Service 구현체 직접 의존 X)
- * - 이렇게 하면 Controller 테스트할 때 UseCase Mock 주입 가능
- *
- * REST API 설계 원칙:
- * - GET: 조회 (멱등성 O)
- * - POST: 생성 (멱등성 X)
- * - PUT: 수정 (멱등성 O)
- * - DELETE: 삭제 (멱등성 O)
- */
 @Tag(name = "Schedule", description = "일정 관리 API")
 @RestController
 @RequestMapping("/api/schedules")
