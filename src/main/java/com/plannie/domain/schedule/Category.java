@@ -27,14 +27,4 @@ public class Category {
         this.color = color;
     }
 
-    /**
-     * 기본 카테고리 생성 (시스템 제공)
-     */
-    public static Category defaultCategory(Long userId) {
-        return Category.builder()
-                .userId(userId)
-                .name("기본")
-                .color("#4183F3")
-                .build();
-    }
 }

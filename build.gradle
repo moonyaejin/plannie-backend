@@ -41,12 +41,6 @@ dependencies {
     // PDF 파싱
     implementation 'org.apache.pdfbox:pdfbox:3.0.1'
 
-    // QueryDSL
-    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
-    annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jakarta'
-    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
-    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
-
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
@@ -102,17 +96,3 @@ task allTest(type: Test) {
     description = 'Run all tests regardless of tags'
 }
 
-// QueryDSL 설정
-def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
-
-sourceSets {
-    main.java.srcDirs += [querydslDir]
-}
-
-tasks.withType(JavaCompile) {
-    options.generatedSourceOutputDirectory = file(querydslDir)
-}
-
-clean.doLast {
-    file(querydslDir).deleteDir()
-}

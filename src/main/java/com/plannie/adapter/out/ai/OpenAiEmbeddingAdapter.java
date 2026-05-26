@@ -23,8 +23,37 @@ public class OpenAiEmbeddingAdapter implements EmbedTextPort {
     private final WebClient openAiWebClient;
 
     @Override
+    @CircuitBreaker(name = "openai", fallbackMethod = "embedFallback")
+    @Retry(name = "openai")
     public float[] embed(String text) {
-        return embedBatch(List.of(text)).get(0);
+        OpenAiEmbeddingRequest request = new OpenAiEmbeddingRequest(List.of(text));
+
+        OpenAiEmbeddingResponse response = openAiWebClient.post()
+                .uri("/embeddings")
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(OpenAiEmbeddingResponse.class)
+                .block();
+
+        if (response == null || response.data() == null || response.data().isEmpty()) {
+            throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
+        }
+
+        List<Float> floats = response.data().get(0).embedding();
+        if (floats == null || floats.isEmpty()) {
+            throw new BusinessException(ErrorCode.OPENAI_PARSE_ERROR);
+        }
+        float[] arr = new float[floats.size()];
+        for (int i = 0; i < floats.size(); i++) arr[i] = floats.get(i);
+        return arr;
+    }
+
+    private float[] embedFallback(String text, Throwable t) {
+        if (t instanceof BusinessException e) throw e;
+        if (t instanceof WebClientResponseException e) {
+            throw new BusinessException(ErrorCode.OPENAI_API_ERROR, "OpenAI API 오류: " + e.getStatusCode());
+        }
+        throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
     }
 
     @Override
