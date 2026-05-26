@@ -88,8 +88,8 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
 
     @Override
     public List<Schedule> getSchedulesByDate(Long userId, LocalDate date) {
-        // 1. 해당 날짜 시작 일정
-        List<Schedule> schedules = loadSchedulePort.findByUserIdAndDate(userId, date);
+        // 1. 해당 날짜의 일회성 일정만 조회 (반복 일정 제외)
+        List<Schedule> oneTimeSchedules = loadSchedulePort.findOneTimeSchedulesByDateRange(userId, date, date);
 
         // 2. 반복 일정 중 해당 날짜에 적용되는 것
         List<Schedule> repeatingSchedules = loadSchedulePort.findRepeatingSchedules(userId);
@@ -99,7 +99,7 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
                 .toList();
 
         // 3. 합쳐서 반환
-        List<Schedule> result = new ArrayList<>(schedules);
+        List<Schedule> result = new ArrayList<>(oneTimeSchedules);
         result.addAll(applicableRepeating);
         return result;
     }
