@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Service
 @RequiredArgsConstructor
@@ -29,8 +30,8 @@ public class ParseScheduleService implements ParseScheduleUseCase {
                 .memo(parsed.memo())
                 .startDate(parsed.startDate())
                 .endDate(parsed.endDate())
-                .startTime(parsed.startTime())
-                .endTime(parsed.endTime())
+                .startTime(parsed.startTime() != null ? parsed.startTime() : LocalTime.of(0, 0))
+                .endTime(parsed.endTime() != null ? parsed.endTime() : LocalTime.of(23, 59))
                 .completed(false)
                 .repeatRule(buildRepeatRule(parsed))
                 .build();

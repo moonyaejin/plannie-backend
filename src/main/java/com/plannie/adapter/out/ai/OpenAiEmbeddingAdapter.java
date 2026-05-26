@@ -5,12 +5,17 @@ import com.plannie.adapter.out.ai.dto.OpenAiEmbeddingResponse;
 import com.plannie.application.port.out.EmbedTextPort;
 import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OpenAiEmbeddingAdapter implements EmbedTextPort {
@@ -23,6 +28,8 @@ public class OpenAiEmbeddingAdapter implements EmbedTextPort {
     }
 
     @Override
+    @CircuitBreaker(name = "openai", fallbackMethod = "embedBatchFallback")
+    @Retry(name = "openai")
     public List<float[]> embedBatch(List<String> texts) {
         OpenAiEmbeddingRequest request = new OpenAiEmbeddingRequest(texts);
 
@@ -49,5 +56,13 @@ public class OpenAiEmbeddingAdapter implements EmbedTextPort {
                     return arr;
                 })
                 .toList();
+    }
+
+    private List<float[]> embedBatchFallback(List<String> texts, Throwable t) {
+        if (t instanceof BusinessException e) throw e;
+        if (t instanceof WebClientResponseException e) {
+            throw new BusinessException(ErrorCode.OPENAI_API_ERROR, "OpenAI API 오류: " + e.getStatusCode());
+        }
+        throw new BusinessException(ErrorCode.OPENAI_API_ERROR);
     }
 }
