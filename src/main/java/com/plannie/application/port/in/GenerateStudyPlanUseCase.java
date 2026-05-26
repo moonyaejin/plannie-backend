@@ -3,7 +3,6 @@ package com.plannie.application.port.in;
 import com.plannie.domain.schedule.Schedule;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -29,13 +28,5 @@ public interface GenerateStudyPlanUseCase {
             String planSummary,
             List<String> weeklyGoals,
             List<Schedule> schedules
-    ) {}
-
-    record ScheduleItem(
-            String title,
-            String memo,
-            LocalDate date,
-            LocalTime startTime,
-            LocalTime endTime
     ) {}
 }
