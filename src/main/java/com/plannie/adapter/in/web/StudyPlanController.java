@@ -36,7 +36,8 @@ public class StudyPlanController {
                 request.textbook(),
                 request.dailyHours(),
                 request.pastExamRounds(),
-                request.focusAreas()
+                request.focusAreas(),
+                request.userRequest()
         );
 
         return StudyPlanResponse.from(generateStudyPlanUseCase.generate(command));

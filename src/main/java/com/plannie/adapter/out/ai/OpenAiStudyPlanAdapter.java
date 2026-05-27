@@ -65,23 +65,24 @@ public class OpenAiStudyPlanAdapter implements GenerateStudyPlanWithAiPort {
                 List.of(
                         new OpenAiRequest.Message("system", buildSystemPrompt()),
                         new OpenAiRequest.Message("user", buildUserMessage(command))
-                )
+                ),
+                8000
         );
     }
 
     private String buildSystemPrompt() {
         return """
-                You are a study plan assistant for Korean students.
-                Create a detailed study schedule based on the given exam info and return ONLY a JSON object.
+                You are an expert study planner for Korean students preparing for exams.
+                Create a highly detailed, day-by-day study schedule and return ONLY a JSON object.
 
                 You MUST follow this exact JSON schema:
                 {
-                  "plan_summary": "전체 학습 계획 요약 (2-3문장, 한국어)",
-                  "weekly_goals": ["1주차 목표", "2주차 목표", ...],
+                  "plan_summary": "전체 학습 계획 요약 (3-4문장, 한국어, 전략과 주차별 흐름 포함)",
+                  "weekly_goals": ["1주차: 구체적 목표와 다룰 파트 명시", "2주차: ...", ...],
                   "schedules": [
                     {
-                      "title": "학습 내용 (예: 엑셀 함수 챕터 1-3)",
-                      "memo": "세부 내용 또는 null",
+                      "title": "파트5 문법: 동사의 형태 집중 훈련",
+                      "memo": "동사/형용사/부사 구별 문제 30문항 풀기 → 오답 원인 분석 → 핵심 문법 규칙 노트 정리",
                       "date": "YYYY-MM-DD",
                       "start_time": "HH:mm",
                       "end_time": "HH:mm",
@@ -90,12 +91,28 @@ public class OpenAiStudyPlanAdapter implements GenerateStudyPlanWithAiPort {
                   ]
                 }
 
-                Rules:
-                - 모든 title, memo, plan_summary, weekly_goals는 한국어로 작성
-                - daily_hours에 맞게 start_time, end_time 설정 (예: 2시간이면 20:00~22:00)
-                - 주말 포함하여 매일 일정 생성
-                - 시험 당일은 "최종 모의고사" 일정으로 마무리
-                - Return only raw JSON, no markdown code block
+                Strict rules:
+                - 모든 텍스트는 한국어로 작성
+                - daily_hours에 맞게 하루 세션을 균등 분할하세요.
+                  예: 2시간이면 2개 세션(각 1시간), 3시간이면 2~3개 세션
+                - LC와 RC는 반드시 같은 날 별도 schedule 항목으로 분리하세요.
+                  절대로 "LC & RC", "LC+RC", "토익공부" 처럼 하나로 합치지 마세요.
+                  LC 세션과 RC 세션은 각각 독립된 항목이어야 합니다.
+                - 각 title은 반드시 [파트/영역명 + 세부 주제]를 포함해야 합니다
+                  나쁜 예: "파트5 공부", "토익 학습"
+                  좋은 예: "파트5 문법: 품사 구별과 어휘 유형 30문제", "파트3 대화 유형: 요청·제안 표현 집중"
+                - 각 memo는 반드시 그 날 세션에서 할 구체적인 활동을 2~3줄로 작성하세요
+                  예: "RC 파트5 문제집 p.120~140 풀기 → 오답 분석 → 틀린 문법 규칙 정리"
+                - 시험의 모든 파트/영역을 균형 있게 커버하세요
+                  (토익 → 파트1~7, 수능 → 국어/수학/영어/탐구)
+                - 중점 학습 영역(focusAreas)은 다른 영역보다 약 2배 많은 세션을 배정하되,
+                  나머지 파트도 반드시 포함하세요
+                - 학습 단계를 3단계로 구성하세요:
+                  1단계(전체 기간 60%): 파트별 개념 학습 + 기본 문제풀이
+                  2단계(전체 기간 30%): 약점 보강 + 실전 문제풀이
+                  3단계(마지막 10% 또는 최소 3일): 전 파트 실전 모의고사 + 오답 총정리
+                - 시험 당일은 title: "최종 실전 모의고사", memo: "전 파트 실전 시간 배분 연습, 컨디션 관리"
+                - Return only raw JSON, no markdown code block, no extra text
                 """;
     }
 
@@ -104,7 +121,7 @@ public class OpenAiStudyPlanAdapter implements GenerateStudyPlanWithAiPort {
                 ? "없음"
                 : String.join(", ", command.focusAreas());
 
-        return """
+        String base = """
                 시험명: %s
                 교재: %s
                 시작일: %s
@@ -121,6 +138,12 @@ public class OpenAiStudyPlanAdapter implements GenerateStudyPlanWithAiPort {
                 command.pastExamRounds(),
                 focusAreas
         );
+
+        if (command.userRequest() != null && !command.userRequest().isBlank()) {
+            base += "\n사용자 요청 원문 (이 내용을 최우선으로 반영하세요): " + command.userRequest();
+        }
+
+        return base;
     }
 
     private AiStudyPlan parseResponse(String content) {
