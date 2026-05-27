@@ -224,4 +224,14 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
             log.debug("Schedule {} was already deleted by another transaction", scheduleId);
         }
     }
+
+    @Override
+    @Transactional
+    public void bulkDelete(Long userId, Integer year, Integer month) {
+        if (year != null && month != null) {
+            scheduleRepository.deleteByUserIdAndYearMonth(userId, year, month);
+        } else {
+            scheduleRepository.deleteAllByUserId(userId);
+        }
+    }
 }

@@ -243,6 +243,13 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         log.info("Deleted schedule {} for user {}", scheduleId, userId);
     }
 
+    @Override
+    @Transactional
+    public void bulkDeleteSchedules(Long userId, Integer year, Integer month) {
+        saveSchedulePort.bulkDelete(userId, year, month);
+        log.info("Bulk deleted schedules for user {} year={} month={}", userId, year, month);
+    }
+
     // ==================== Private Helper Methods ====================
 
     private List<ScheduleView> expandRepeatScheduleToViews(Schedule schedule,

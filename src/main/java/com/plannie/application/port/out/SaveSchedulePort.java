@@ -18,4 +18,6 @@ public interface SaveSchedulePort {
     void toggleComplete(Long scheduleId);
 
     void toggleCompletion(Long scheduleId, LocalDate date);
+
+    void bulkDelete(Long userId, Integer year, Integer month);
 }

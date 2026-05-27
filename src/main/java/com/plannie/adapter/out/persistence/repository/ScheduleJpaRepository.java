@@ -87,4 +87,16 @@ public interface ScheduleJpaRepository extends JpaRepository<ScheduleJpaEntity, 
     // 알림용: reminderMinutes 설정된 일정만 조회
     List<ScheduleJpaEntity> findByStartDateAndStartTimeBetweenAndReminderMinutes(
             LocalDate startDate, LocalTime from, LocalTime to, int reminderMinutes);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM ScheduleJpaEntity s WHERE s.userId = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM ScheduleJpaEntity s WHERE s.userId = :userId AND YEAR(s.startDate) = :year AND MONTH(s.startDate) = :month")
+    void deleteByUserIdAndYearMonth(
+            @Param("userId") Long userId,
+            @Param("year") int year,
+            @Param("month") int month
+    );
 }
