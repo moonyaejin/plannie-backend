@@ -10,6 +10,7 @@ import com.plannie.domain.schedule.ScheduleException;
 import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,6 +52,8 @@ public class ScheduleMapper {
      * 비즈니스 로직 처리 후 DB에 저장할 때 사용
      */
     public ScheduleJpaEntity toEntity(Schedule schedule) {
+        LocalTime startTime = schedule.getStartTime() != null ? schedule.getStartTime() : LocalTime.of(0, 0);
+        LocalTime endTime = schedule.getEndTime() != null ? schedule.getEndTime() : startTime.plusHours(1);
         ScheduleJpaEntity entity = ScheduleJpaEntity.builder()
                 .id(schedule.getId())
                 .userId(schedule.getUserId())
@@ -58,8 +61,8 @@ public class ScheduleMapper {
                 .memo(schedule.getMemo())
                 .startDate(schedule.getStartDate())
                 .endDate(schedule.getEndDate())
-                .startTime(schedule.getStartTime())
-                .endTime(schedule.getEndTime())
+                .startTime(startTime)
+                .endTime(endTime)
                 .completed(schedule.isCompleted())
                 .categoryId(schedule.getCategoryId())
                 .repeatType(toRepeatType(schedule.getRepeatRule()))
