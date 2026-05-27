@@ -45,6 +45,8 @@ resilience4j:
         max-attempts: 3
         wait-duration: 1s
         exponential-backoff-multiplier: 2
+        ignore-exceptions:
+          - com.plannie.common.exception.BusinessException
 
 ---
 # Local 환경 (H2, RAG 기능 미포함)
