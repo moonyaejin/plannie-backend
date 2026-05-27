@@ -22,7 +22,8 @@ public interface GenerateStudyPlanUseCase {
             String textbook,
             int dailyHours,
             int pastExamRounds,
-            List<String> focusAreas
+            List<String> focusAreas,
+            String userRequest
     ) {}
 
     record StudyPlanResult(

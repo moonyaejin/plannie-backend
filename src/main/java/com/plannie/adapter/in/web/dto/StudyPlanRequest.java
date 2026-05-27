@@ -15,5 +15,6 @@ public record StudyPlanRequest(
         String textbook,
         @Positive int dailyHours,
         int pastExamRounds,
-        List<String> focusAreas
+        List<String> focusAreas,
+        String userRequest
 ) {}
