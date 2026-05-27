@@ -212,4 +212,15 @@ public class ScheduleController {
         deleteScheduleUseCase.deleteSchedule(id, userId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "일정 일괄 삭제", description = "year+month 지정 시 해당 월, 미지정 시 전체 삭제")
+    @DeleteMapping("/bulk")
+    public ResponseEntity<Void> bulkDeleteSchedules(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+
+        deleteScheduleUseCase.bulkDeleteSchedules(userId, year, month);
+        return ResponseEntity.noContent().build();
+    }
 }

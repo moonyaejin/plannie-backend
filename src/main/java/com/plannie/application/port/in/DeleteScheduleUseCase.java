@@ -6,4 +6,6 @@ package com.plannie.application.port.in;
 public interface DeleteScheduleUseCase {
 
     void deleteSchedule(Long scheduleId, Long userId);
+
+    void bulkDeleteSchedules(Long userId, Integer year, Integer month);
 }
