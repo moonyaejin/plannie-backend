@@ -69,6 +69,19 @@ dependencies {
     testImplementation 'org.testcontainers:mysql'
 }
 
+// .env 파일에서 환경변수를 로드해서 bootRun에 주입
+tasks.named('bootRun') {
+    File envFile = rootProject.file('.env')
+    if (envFile.exists()) {
+        envFile.readLines().each { line ->
+            if (line && !line.startsWith('#') && line.contains('=')) {
+                def parts = line.split('=', 2)
+                environment(parts[0].trim(), parts[1].trim())
+            }
+        }
+    }
+}
+
 // 기본 테스트 태스크 (fast 태그만 실행, 태그 없는 테스트도 실행)
 tasks.named('test') {
     useJUnitPlatform {
