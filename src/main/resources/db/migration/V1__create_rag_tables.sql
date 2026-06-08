@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
-CREATE TABLE documents (
+CREATE TABLE IF NOT EXISTS documents (
     id         BIGSERIAL PRIMARY KEY,
     user_id    BIGINT       NOT NULL,
     file_name  VARCHAR(255) NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE documents (
     created_at TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE document_chunks (
+CREATE TABLE IF NOT EXISTS document_chunks (
     id          BIGSERIAL PRIMARY KEY,
     document_id BIGINT  NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
     chunk_index INT     NOT NULL,
@@ -16,4 +16,5 @@ CREATE TABLE document_chunks (
     embedding   vector(1536)
 );
 
-CREATE INDEX ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
+    ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
