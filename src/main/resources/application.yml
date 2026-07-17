@@ -95,8 +95,8 @@ jwt:
 
 app:
   admin:
-    email: ${ADMIN_EMAIL:admin@plannie.com}
-    password: ${ADMIN_PASSWORD:***REDACTED-CREDENTIAL***}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
     nickname: ${ADMIN_NICKNAME:관리자}
 
 ---
@@ -149,8 +149,8 @@ jwt:
 
 app:
   admin:
-    email: ${ADMIN_EMAIL:admin@plannie.com}
-    password: ${ADMIN_PASSWORD:***REDACTED-CREDENTIAL***}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
     nickname: ${ADMIN_NICKNAME:관리자}
 
 ---
