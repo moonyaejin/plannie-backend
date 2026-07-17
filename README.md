@@ -77,6 +77,9 @@ export $(cat .env | xargs) && ./gradlew bootRun
 | `DB_PASSWORD`    | DB 비밀번호             | -                |
 | `REDIS_HOST`     | Redis 호스트            | localhost        |
 | `REDIS_PORT`     | Redis 포트              | 6379             |
+| `ADMIN_EMAIL`    | 초기 관리자 계정 이메일 | -  (미설정 시 관리자 계정 생성 안 함) |
+| `ADMIN_PASSWORD` | 초기 관리자 계정 비밀번호 | - (미설정 시 관리자 계정 생성 안 함) |
+| `ADMIN_NICKNAME` | 초기 관리자 계정 닉네임 | 관리자 |
 
 ## 구현 현황
 
