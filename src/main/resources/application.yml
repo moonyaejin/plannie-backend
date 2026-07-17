@@ -93,6 +93,13 @@ jwt:
   secret: ${JWT_SECRET:plannie-local-dev-secret-key-must-be-at-least-32-chars}
   expiration-ms: 86400000  # 24시간
 
+# 관리자 계정은 필수 아님 — 값을 안 주면 자동 생성을 건너뜀 (DataInitializer 참고)
+app:
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    nickname: ${ADMIN_NICKNAME:관리자}
+
 ---
 # Local PostgreSQL 환경 (RAG 기능 포함, docker-compose 필요)
 spring:
@@ -140,6 +147,13 @@ openai:
 jwt:
   secret: ${JWT_SECRET:plannie-local-dev-secret-key-must-be-at-least-32-chars}
   expiration-ms: 86400000  # 24시간
+
+# 관리자 계정은 필수 아님 — 값을 안 주면 자동 생성을 건너뜀 (DataInitializer 참고)
+app:
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    nickname: ${ADMIN_NICKNAME:관리자}
 
 ---
 # Production 환경
