@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,8 +51,6 @@ public class CategoryController {
     private final UpdateCategoryUseCase updateCategoryUseCase;
     private final DeleteCategoryUseCase deleteCategoryUseCase;
 
-    private static final String USER_ID_HEADER = "X-User-Id";
-
     /**
      * 카테고리 생성
      * POST /api/categories
@@ -59,7 +58,7 @@ public class CategoryController {
     @Operation(summary = "카테고리 생성", description = "새로운 카테고리를 생성합니다")
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody CategoryRequest request) {
 
         CreateCategoryCommand command = new CreateCategoryCommand(
@@ -84,7 +83,7 @@ public class CategoryController {
     @Operation(summary = "카테고리 목록 조회", description = "기본 카테고리와 유저의 커스텀 카테고리를 조회합니다")
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getCategories(
-            @RequestHeader(USER_ID_HEADER) Long userId) {
+            @AuthenticationPrincipal Long userId) {
 
         List<Category> categories = getCategoryUseCase.getCategories(userId);
 
@@ -102,7 +101,7 @@ public class CategoryController {
     @Operation(summary = "카테고리 수정", description = "카테고리를 수정합니다")
     @PutMapping("/{id}")
     public ResponseEntity<CategoryResponse> updateCategory(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "카테고리 ID") @PathVariable Long id,
             @Valid @RequestBody CategoryRequest request) {
 
@@ -125,7 +124,7 @@ public class CategoryController {
     @Operation(summary = "카테고리 삭제", description = "카테고리를 삭제합니다")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(
-            @RequestHeader(USER_ID_HEADER) Long userId,
+            @AuthenticationPrincipal Long userId,
             @Parameter(description = "카테고리 ID") @PathVariable Long id) {
 
         deleteCategoryUseCase.deleteCategory(id, userId);
