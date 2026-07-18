@@ -17,9 +17,9 @@ public interface GetScheduleUseCase {
     Optional<Schedule> getSchedule(Long scheduleId, Long userId);
 
     /**
-     * 특정 날짜의 일정 목록 조회
+     * 특정 날짜의 일정 목록 조회 (반복 일정의 날짜별 완료 상태 반영)
      */
-    List<Schedule> getSchedulesByDate(Long userId, LocalDate date);
+    List<ScheduleView> getSchedulesByDate(Long userId, LocalDate date);
 
     /**
      * 월별 일정 목록 조회
