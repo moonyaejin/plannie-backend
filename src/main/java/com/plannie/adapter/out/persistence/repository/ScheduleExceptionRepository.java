@@ -15,6 +15,8 @@ public interface ScheduleExceptionRepository extends JpaRepository<ScheduleExcep
     Optional<ScheduleExceptionEntity> findByScheduleIdAndExceptionDate(
             Long scheduleId, LocalDate exceptionDate);
 
+    void deleteByScheduleId(Long scheduleId);
+
     @Query("SELECT e FROM ScheduleExceptionEntity e WHERE e.scheduleId IN :ids " +
             "AND e.exceptionDate BETWEEN :startDate AND :endDate")
     List<ScheduleExceptionEntity> findByScheduleIdsAndDateRange(

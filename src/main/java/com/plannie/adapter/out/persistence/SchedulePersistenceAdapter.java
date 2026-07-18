@@ -223,6 +223,50 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
         } catch (ObjectOptimisticLockingFailureException e) {
             log.debug("Schedule {} was already deleted by another transaction", scheduleId);
         }
+        // 반복 일정 시리즈 전체 삭제 시, 해당 일정의 occurrence별 완료/예외 기록도 함께 정리
+        scheduleExceptionRepository.deleteByScheduleId(scheduleId);
+        scheduleCompletionRepository.deleteByScheduleId(scheduleId);
+    }
+
+    @Override
+    @Transactional
+    public void saveOccurrenceModification(Long scheduleId, LocalDate date, String title, String memo,
+                                           LocalTime startTime, LocalTime endTime) {
+        ScheduleExceptionEntity existing = scheduleExceptionRepository
+                .findByScheduleIdAndExceptionDate(scheduleId, date)
+                .orElse(null);
+
+        if (existing != null) {
+            existing.modify(title, memo, startTime, endTime);
+        } else {
+            scheduleExceptionRepository.save(ScheduleExceptionEntity.builder()
+                    .scheduleId(scheduleId)
+                    .exceptionDate(date)
+                    .exceptionType(ScheduleExceptionEntity.ExceptionType.MODIFIED)
+                    .modifiedTitle(title)
+                    .modifiedMemo(memo)
+                    .modifiedStartTime(startTime)
+                    .modifiedEndTime(endTime)
+                    .build());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteOccurrence(Long scheduleId, LocalDate date) {
+        ScheduleExceptionEntity existing = scheduleExceptionRepository
+                .findByScheduleIdAndExceptionDate(scheduleId, date)
+                .orElse(null);
+
+        if (existing != null) {
+            existing.markDeleted();
+        } else {
+            scheduleExceptionRepository.save(ScheduleExceptionEntity.builder()
+                    .scheduleId(scheduleId)
+                    .exceptionDate(date)
+                    .exceptionType(ScheduleExceptionEntity.ExceptionType.DELETED)
+                    .build());
+        }
     }
 
     @Override
