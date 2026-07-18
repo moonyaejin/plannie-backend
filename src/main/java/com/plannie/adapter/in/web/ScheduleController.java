@@ -154,11 +154,13 @@ public class ScheduleController {
 
     // ── 일정 수정 ─────────────────────────────────────────────────────────────
 
-    @Operation(summary = "일정 수정", description = "일정을 수정합니다")
+    @Operation(summary = "일정 수정", description = "일정을 수정합니다. occurrenceDate 지정 시 반복 일정의 해당 날짜만 수정됩니다")
     @PutMapping("/{id}")
     public ResponseEntity<ScheduleResponse> updateSchedule(
             @AuthenticationPrincipal Long userId,
             @Parameter(description = "일정 ID") @PathVariable Long id,
+            @Parameter(description = "반복 일정 중 이 날짜의 occurrence만 수정 (미지정 시 시리즈 전체 수정)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate occurrenceDate,
             @Valid @RequestBody ScheduleRequest request) {
 
         UpdateScheduleCommand command = new UpdateScheduleCommand(
@@ -171,7 +173,8 @@ public class ScheduleController {
                 request.startTime(),
                 request.endTime(),
                 request.categoryId(),
-                request.reminderMinutes()
+                request.reminderMinutes(),
+                occurrenceDate
         );
 
         Schedule updated = updateScheduleUseCase.updateSchedule(command);
@@ -201,13 +204,15 @@ public class ScheduleController {
 
     // ── 일정 삭제 ─────────────────────────────────────────────────────────────
 
-    @Operation(summary = "일정 삭제", description = "일정을 삭제합니다")
+    @Operation(summary = "일정 삭제", description = "일정을 삭제합니다. occurrenceDate 지정 시 반복 일정의 해당 날짜만 삭제됩니다")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSchedule(
             @AuthenticationPrincipal Long userId,
-            @Parameter(description = "일정 ID") @PathVariable Long id) {
+            @Parameter(description = "일정 ID") @PathVariable Long id,
+            @Parameter(description = "반복 일정 중 이 날짜의 occurrence만 삭제 (미지정 시 시리즈 전체 삭제)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate occurrenceDate) {
 
-        deleteScheduleUseCase.deleteSchedule(id, userId);
+        deleteScheduleUseCase.deleteSchedule(id, userId, occurrenceDate);
         return ResponseEntity.noContent().build();
     }
 

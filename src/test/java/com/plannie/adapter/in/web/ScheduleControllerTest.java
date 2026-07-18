@@ -140,7 +140,7 @@ class ScheduleControllerTest {
     @Test
     @DisplayName("DELETE /api/schedules/{id} - 정상 삭제 시 204를 반환한다")
     void 일정_삭제_성공() throws Exception {
-        doNothing().when(deleteScheduleUseCase).deleteSchedule(1L, USER_ID);
+        doNothing().when(deleteScheduleUseCase).deleteSchedule(1L, USER_ID, null);
 
         mockMvc.perform(delete("/api/schedules/1")
                         .with(authentication(auth(USER_ID)))

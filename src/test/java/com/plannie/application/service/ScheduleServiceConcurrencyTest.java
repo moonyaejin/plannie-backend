@@ -60,7 +60,7 @@ class ScheduleServiceConcurrencyTest {
                                     "수정된 메모",
                                     LocalDate.now(), LocalDate.now(),
                                     LocalTime.of(14, 0), LocalTime.of(15, 0),
-                                    null, null
+                                    null, null, null
                             );
 
                     scheduleService.updateSchedule(command);   // 수정 시도
@@ -164,7 +164,7 @@ class ScheduleServiceConcurrencyTest {
             final int index = i;
             executor.submit(() -> {
                 try {
-                    scheduleService.deleteSchedule(scheduleId, 1L);
+                    scheduleService.deleteSchedule(scheduleId, 1L, null);
                     System.out.println("Thread " + index + " 삭제 시도 완료");
                 } catch (Exception e) {
                     // 트랜잭션 롤백 예외는 무시
