@@ -121,15 +121,13 @@ public class ScheduleController {
 
     @Operation(summary = "날짜별 일정 조회", description = "특정 날짜의 일정 목록을 조회합니다")
     @GetMapping("/date")
-    public ResponseEntity<List<ScheduleResponse>> getSchedulesByDate(
+    public ResponseEntity<List<ScheduleView>> getSchedulesByDate(
             @AuthenticationPrincipal Long userId,
             @Parameter(description = "조회 날짜 (yyyy-MM-dd)")
             @RequestParam LocalDate date) {
 
-        List<ScheduleResponse> response = getScheduleUseCase.getSchedulesByDate(userId, date)
-                .stream().map(ScheduleResponse::from).toList();
-
-        return ResponseEntity.ok(response);
+        List<ScheduleView> schedules = getScheduleUseCase.getSchedulesByDate(userId, date);
+        return ResponseEntity.ok(schedules);
     }
 
     @Operation(summary = "월별 일정 조회", description = "특정 월의 일정 목록을 조회합니다")
