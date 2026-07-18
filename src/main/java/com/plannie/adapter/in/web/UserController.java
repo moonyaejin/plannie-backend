@@ -1,5 +1,6 @@
 package com.plannie.adapter.in.web;
 
+import com.plannie.adapter.in.web.dto.DeleteAccountRequest;
 import com.plannie.adapter.in.web.dto.UserProfileRequest;
 import com.plannie.adapter.in.web.dto.UserProfileResponse;
 import com.plannie.application.port.in.UserProfileUseCase;
@@ -42,10 +43,12 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "회원 탈퇴")
+    @Operation(summary = "회원 탈퇴", description = "비밀번호 확인 후 탈퇴 처리합니다")
     @DeleteMapping("/me")
-    public ResponseEntity<Void> deleteMyAccount(@AuthenticationPrincipal Long userId) {
-        userProfileUseCase.deleteAccount(userId);
+    public ResponseEntity<Void> deleteMyAccount(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody DeleteAccountRequest request) {
+        userProfileUseCase.deleteAccount(userId, request.password());
         return ResponseEntity.noContent().build();
     }
 }

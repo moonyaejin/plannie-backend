@@ -51,9 +51,14 @@ public class UserProfileService implements UserProfileUseCase {
 
     @Override
     @Transactional
-    public void deleteAccount(Long userId) {
-        loadUserPort.findById(userId)
+    public void deleteAccount(Long userId, String rawPassword) {
+        User user = loadUserPort.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+        }
+
         userManagementPort.deleteById(userId);
     }
 
