@@ -8,7 +8,7 @@ public interface UserProfileUseCase {
 
     void updateProfile(UpdateProfileCommand command);
 
-    void deleteAccount(Long userId);
+    void deleteAccount(Long userId, String rawPassword);
 
     record ProfileResult(
             Long id,
