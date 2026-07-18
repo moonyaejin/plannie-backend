@@ -87,21 +87,8 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     }
 
     @Override
-    public List<Schedule> getSchedulesByDate(Long userId, LocalDate date) {
-        // 1. 해당 날짜 시작 일정
-        List<Schedule> schedules = loadSchedulePort.findByUserIdAndDate(userId, date);
-
-        // 2. 반복 일정 중 해당 날짜에 적용되는 것
-        List<Schedule> repeatingSchedules = loadSchedulePort.findRepeatingSchedules(userId);
-
-        List<Schedule> applicableRepeating = repeatingSchedules.stream()
-                .filter(s -> s.getRepeatRule().appliesTo(date))
-                .toList();
-
-        // 3. 합쳐서 반환
-        List<Schedule> result = new ArrayList<>(schedules);
-        result.addAll(applicableRepeating);
-        return result;
+    public List<ScheduleView> getSchedulesByDate(Long userId, LocalDate date) {
+        return buildScheduleViews(userId, date, date);
     }
 
     @Override
@@ -211,6 +198,12 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        // 반복 일정은 날짜별 완료 처리(toggleRecurringComplete)를 써야 함 — 여기서 토글하면
+        // 시리즈 전체가 한꺼번에 완료된 것처럼 보이는 버그로 이어짐
+        if (schedule.getRepeatRule().isRepeating()) {
+            throw new BusinessException(ErrorCode.RECURRING_SCHEDULE_TOGGLE_NOT_ALLOWED);
+        }
 
         // 일회성 일정 완료 토글
         saveSchedulePort.toggleComplete(scheduleId);
