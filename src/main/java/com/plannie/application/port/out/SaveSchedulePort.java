@@ -20,4 +20,15 @@ public interface SaveSchedulePort {
     void toggleCompletion(Long scheduleId, LocalDate date);
 
     void bulkDelete(Long userId, Integer year, Integer month);
+
+    /**
+     * 반복 일정의 특정 occurrence만 수정 (ScheduleException 생성/갱신)
+     */
+    void saveOccurrenceModification(Long scheduleId, LocalDate date, String title, String memo,
+                                    LocalTime startTime, LocalTime endTime);
+
+    /**
+     * 반복 일정의 특정 occurrence만 삭제 (ScheduleException 생성/갱신)
+     */
+    void deleteOccurrence(Long scheduleId, LocalDate date);
 }
