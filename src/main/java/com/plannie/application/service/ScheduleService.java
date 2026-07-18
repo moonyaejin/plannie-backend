@@ -174,7 +174,20 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         // 2. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
 
-        // 3. 도메인 객체 업데이트
+        // 3. 반복 일정의 occurrence 하나만 수정하는 경우 — 시리즈 원본은 그대로 두고 예외만 기록
+        if (command.occurrenceDate() != null && existingSchedule.getRepeatRule().isRepeating()) {
+            saveSchedulePort.saveOccurrenceModification(
+                    existingSchedule.getId(),
+                    command.occurrenceDate(),
+                    command.title(),
+                    command.memo(),
+                    command.startTime(),
+                    command.endTime()
+            );
+            return existingSchedule;
+        }
+
+        // 4. 시리즈 전체(또는 반복 없는 일정) 수정
         existingSchedule.update(
                 command.title(),
                 command.memo(),
@@ -186,7 +199,6 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
                 command.reminderMinutes()
         );
 
-        // 4. DB 저장
         return saveSchedulePort.save(existingSchedule);
     }
 
@@ -227,10 +239,17 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     @Override
     @Transactional
     @CacheEvict(value = "schedules:monthly", allEntries = true)
-    public void deleteSchedule(Long scheduleId, Long userId) {
+    public void deleteSchedule(Long scheduleId, Long userId, LocalDate occurrenceDate) {
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        // 반복 일정의 occurrence 하나만 삭제하는 경우 — 시리즈는 남기고 해당 날짜만 예외 처리
+        if (occurrenceDate != null && schedule.getRepeatRule().isRepeating()) {
+            saveSchedulePort.deleteOccurrence(scheduleId, occurrenceDate);
+            log.info("Deleted occurrence {} of schedule {} for user {}", occurrenceDate, scheduleId, userId);
+            return;
+        }
 
         saveSchedulePort.delete(schedule.getId());
         log.info("Deleted schedule {} for user {}", scheduleId, userId);

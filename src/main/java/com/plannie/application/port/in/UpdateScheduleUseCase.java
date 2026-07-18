@@ -26,6 +26,7 @@ public interface UpdateScheduleUseCase {
             LocalTime startTime,
             LocalTime endTime,
             Long categoryId,
-            Integer reminderMinutes  // null = 알림 없음, 5/10/30 = X분 전 알림
+            Integer reminderMinutes,  // null = 알림 없음, 5/10/30 = X분 전 알림
+            LocalDate occurrenceDate  // null = 시리즈 전체 수정, non-null = 반복 일정의 해당 날짜 occurrence만 수정
     ) {}
 }
