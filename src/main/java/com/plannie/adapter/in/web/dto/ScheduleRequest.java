@@ -25,10 +25,10 @@ import java.time.LocalTime;
 public record ScheduleRequest(
         
         @NotBlank(message = "일정 제목은 필수입니다")
-        @Size(max = 200, message = "일정 제목은 200자 이하여야 합니다")
+        @Size(max = 20, message = "일정 제목은 20자 이하여야 합니다")
         String title,
 
-        @Size(max = 2000, message = "메모는 2000자 이하여야 합니다")
+        @Size(max = 200, message = "메모는 200자 이하여야 합니다")
         String memo,
 
         @NotNull(message = "시작 날짜는 필수입니다")
