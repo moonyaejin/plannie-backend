@@ -40,7 +40,7 @@ class GenerateStudyPlanServiceTest {
 
     private final GenerateStudyPlanCommand command = new GenerateStudyPlanCommand(
             1L, "정보처리기사", LocalDate.of(2026, 4, 10), LocalDate.of(2026, 5, 10),
-            "수제비", 2, 3, List.of("데이터베이스", "운영체제")
+            "수제비", 2, 3, List.of("데이터베이스", "운영체제"), null
     );
 
     @Test
