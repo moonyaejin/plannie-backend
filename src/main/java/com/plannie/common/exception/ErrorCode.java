@@ -14,6 +14,7 @@ public enum ErrorCode {
     // Common
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "C001", "잘못된 입력입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C002", "서버 오류가 발생했습니다."),
+    RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "요청한 API 경로를 찾을 수 없습니다."),
 
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),
