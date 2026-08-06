@@ -34,6 +34,6 @@ public interface StudySessionJpaRepository extends JpaRepository<StudySessionJpa
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
 
-    // 과목별 전체 세션 조회
-    List<StudySessionJpaEntity> findByUserIdAndSubjectId(Long userId, Long subjectId);
+    // 카테고리별 전체 세션 조회
+    List<StudySessionJpaEntity> findByUserIdAndCategoryId(Long userId, Long categoryId);
 }

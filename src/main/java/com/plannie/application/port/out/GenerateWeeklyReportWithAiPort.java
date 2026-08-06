@@ -15,10 +15,10 @@ public interface GenerateWeeklyReportWithAiPort {
             double completionRate,
             List<String> scheduleTitles,
             int totalStudyMinutes,
-            List<SubjectTime> studyBySubject
+            List<CategoryTime> studyByCategory
     ) {}
 
-    record SubjectTime(String subjectName, int totalMinutes) {}
+    record CategoryTime(String categoryName, int totalMinutes) {}
 
     record AiWeeklyReport(
             String summary,

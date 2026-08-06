@@ -31,13 +31,10 @@ public enum ErrorCode {
 
     // Category
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CT001", "카테고리를 찾을 수 없습니다."),
+    CATEGORY_DUPLICATE(HttpStatus.CONFLICT, "CT002", "이미 같은 이름의 카테고리가 있습니다."),
 
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "알림을 찾을 수 없습니다."),
-
-    // StudySubject
-    STUDY_SUBJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "SS001", "과목을 찾을 수 없습니다."),
-    STUDY_SUBJECT_DUPLICATE(HttpStatus.CONFLICT, "SS002", "이미 같은 이름의 과목이 있습니다."),
 
     // StudySession
     STUDY_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SS003", "공부 세션을 찾을 수 없습니다."),

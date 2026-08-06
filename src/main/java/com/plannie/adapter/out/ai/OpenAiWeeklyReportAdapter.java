@@ -89,10 +89,10 @@ public class OpenAiWeeklyReportAdapter implements GenerateWeeklyReportWithAiPort
                 ? "이번 주 일정 없음"
                 : String.join("\n", request.scheduleTitles());
 
-        String studySummary = request.studyBySubject().isEmpty()
+        String studySummary = request.studyByCategory().isEmpty()
                 ? "이번 주 공부 기록 없음"
-                : request.studyBySubject().stream()
-                        .map(s -> "  - %s: %d분".formatted(s.subjectName(), s.totalMinutes()))
+                : request.studyByCategory().stream()
+                        .map(s -> "  - %s: %d분".formatted(s.categoryName(), s.totalMinutes()))
                         .collect(Collectors.joining("\n"));
 
         return """

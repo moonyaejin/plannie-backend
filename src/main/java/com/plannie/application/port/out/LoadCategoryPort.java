@@ -13,5 +13,9 @@ public interface LoadCategoryPort {
 
     Optional<Category> findByIdAndUserId(Long id, Long userId);
 
+    Optional<Category> findByIdAndUserIdOrDefault(Long id, Long userId);
+
     List<Category> findAllByUserIdOrDefault(Long userId);
+
+    boolean existsByUserIdAndName(Long userId, String name);
 }

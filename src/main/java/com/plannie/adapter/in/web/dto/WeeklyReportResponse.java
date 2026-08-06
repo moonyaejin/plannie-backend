@@ -14,22 +14,22 @@ public record WeeklyReportResponse(
         double completionRate,
         // 공부 시간
         int totalStudyMinutes,
-        List<SubjectTimeDto> studyBySubject,
+        List<CategoryTimeDto> studyByCategory,
         // AI 분석
         String summary,
         List<String> strengths,
         List<String> improvements,
         String nextWeekAdvice
 ) {
-    public record SubjectTimeDto(String subjectName, int totalMinutes) {}
+    public record CategoryTimeDto(String categoryName, int totalMinutes) {}
 
     public static WeeklyReportResponse from(WeeklyReport report) {
         return new WeeklyReportResponse(
                 report.weekStart(), report.weekEnd(),
                 report.totalSchedules(), report.completedSchedules(), report.completionRate(),
                 report.totalStudyMinutes(),
-                report.studyBySubject().stream()
-                        .map(s -> new SubjectTimeDto(s.subjectName(), s.totalMinutes()))
+                report.studyByCategory().stream()
+                        .map(s -> new CategoryTimeDto(s.categoryName(), s.totalMinutes()))
                         .toList(),
                 report.summary(), report.strengths(),
                 report.improvements(), report.nextWeekAdvice()

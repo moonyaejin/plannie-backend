@@ -16,4 +16,12 @@ public interface CategoryJpaRepository extends JpaRepository<CategoryJpaEntity, 
      */
     @Query("SELECT c FROM CategoryJpaEntity c WHERE c.userId IS NULL OR c.userId = :userId")
     List<CategoryJpaEntity> findAllByUserIdOrDefault(@Param("userId") Long userId);
+
+    /**
+     * 기본 카테고리(userId = null) 또는 해당 유저 소유 카테고리 단건 조회
+     */
+    @Query("SELECT c FROM CategoryJpaEntity c WHERE c.id = :id AND (c.userId IS NULL OR c.userId = :userId)")
+    Optional<CategoryJpaEntity> findByIdAndUserIdOrDefault(@Param("id") Long id, @Param("userId") Long userId);
+
+    boolean existsByUserIdAndCategoryName(Long userId, String categoryName);
 }

@@ -51,6 +51,10 @@ public class CategoryService implements CreateCategoryUseCase,
     @Override
     @Transactional
     public Category createCategory(CreateCategoryCommand command) {
+        if (loadCategoryPort.existsByUserIdAndName(command.userId(), command.name())) {
+            throw new BusinessException(ErrorCode.CATEGORY_DUPLICATE);
+        }
+
         // 도메인 객체 생성
         Category category = Category.builder()
                 .userId(command.userId())

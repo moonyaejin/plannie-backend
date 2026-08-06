@@ -2,12 +2,12 @@ package com.plannie.application.service;
 
 import com.plannie.application.port.in.GenerateWeeklyReportUseCase;
 import com.plannie.application.port.out.GenerateWeeklyReportWithAiPort;
+import com.plannie.application.port.out.LoadCategoryPort;
 import com.plannie.application.port.out.LoadSchedulePort;
 import com.plannie.application.port.out.StudySessionPort;
-import com.plannie.application.port.out.StudySubjectPort;
+import com.plannie.domain.schedule.Category;
 import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.studysession.StudySession;
-import com.plannie.domain.studysession.StudySubject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ public class GenerateWeeklyReportService implements GenerateWeeklyReportUseCase 
 
     private final LoadSchedulePort loadSchedulePort;
     private final StudySessionPort studySessionPort;
-    private final StudySubjectPort studySubjectPort;
+    private final LoadCategoryPort loadCategoryPort;
     private final GenerateWeeklyReportWithAiPort reportAiPort;
 
     @Override
@@ -41,26 +41,26 @@ public class GenerateWeeklyReportService implements GenerateWeeklyReportUseCase 
 
         // 2. 공부 시간 집계
         List<StudySession> sessions = studySessionPort.findByUserIdAndDateRange(userId, weekStart, weekEnd);
-        Map<Long, StudySubject> subjectMap = studySubjectPort.findAllByUserId(userId).stream()
-                .collect(Collectors.toMap(StudySubject::getId, s -> s));
+        Map<Long, Category> categoryMap = loadCategoryPort.findAllByUserIdOrDefault(userId).stream()
+                .collect(Collectors.toMap(Category::getId, c -> c));
 
-        Map<Long, Integer> minutesBySubject = sessions.stream()
+        Map<Long, Integer> minutesByCategory = sessions.stream()
                 .filter(s -> !s.isActive() && s.getDurationMinutes() != null)
                 .collect(Collectors.groupingBy(
-                        StudySession::getSubjectId,
+                        StudySession::getCategoryId,
                         Collectors.summingInt(StudySession::getDurationMinutes)
                 ));
 
-        List<SubjectTime> studyBySubject = minutesBySubject.entrySet().stream()
+        List<CategoryTime> studyByCategory = minutesByCategory.entrySet().stream()
                 .map(e -> {
-                    StudySubject subject = subjectMap.get(e.getKey());
-                    String name = subject != null ? subject.getName() : "삭제된 과목";
-                    return new SubjectTime(name, e.getValue());
+                    Category category = categoryMap.get(e.getKey());
+                    String name = category != null ? category.getName() : "삭제된 카테고리";
+                    return new CategoryTime(name, e.getValue());
                 })
                 .sorted((a, b) -> b.totalMinutes() - a.totalMinutes())
                 .toList();
 
-        int totalStudyMinutes = minutesBySubject.values().stream().mapToInt(Integer::intValue).sum();
+        int totalStudyMinutes = minutesByCategory.values().stream().mapToInt(Integer::intValue).sum();
 
         // 3. AI 분석
         GenerateWeeklyReportWithAiPort.AiWeeklyReport aiReport = reportAiPort.generate(
@@ -68,8 +68,8 @@ public class GenerateWeeklyReportService implements GenerateWeeklyReportUseCase 
                         weekStart, weekEnd,
                         total, completed, completionRate, scheduleTitles,
                         totalStudyMinutes,
-                        studyBySubject.stream()
-                                .map(s -> new GenerateWeeklyReportWithAiPort.SubjectTime(s.subjectName(), s.totalMinutes()))
+                        studyByCategory.stream()
+                                .map(s -> new GenerateWeeklyReportWithAiPort.CategoryTime(s.categoryName(), s.totalMinutes()))
                                 .toList()
                 )
         );
@@ -77,7 +77,7 @@ public class GenerateWeeklyReportService implements GenerateWeeklyReportUseCase 
         return new WeeklyReport(
                 weekStart, weekEnd,
                 total, completed, completionRate,
-                totalStudyMinutes, studyBySubject,
+                totalStudyMinutes, studyByCategory,
                 aiReport.summary(), aiReport.strengths(),
                 aiReport.improvements(), aiReport.nextWeekAdvice()
         );

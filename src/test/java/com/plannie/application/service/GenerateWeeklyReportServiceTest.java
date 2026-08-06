@@ -4,13 +4,13 @@ import com.plannie.application.port.in.GenerateWeeklyReportUseCase.WeeklyReport;
 import com.plannie.application.port.out.GenerateWeeklyReportWithAiPort;
 import com.plannie.application.port.out.GenerateWeeklyReportWithAiPort.AiWeeklyReport;
 import com.plannie.application.port.out.GenerateWeeklyReportWithAiPort.ReportRequest;
+import com.plannie.application.port.out.LoadCategoryPort;
 import com.plannie.application.port.out.LoadSchedulePort;
 import com.plannie.application.port.out.StudySessionPort;
-import com.plannie.application.port.out.StudySubjectPort;
+import com.plannie.domain.schedule.Category;
 import com.plannie.domain.schedule.RepeatRule;
 import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.studysession.StudySession;
-import com.plannie.domain.studysession.StudySubject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class GenerateWeeklyReportServiceTest {
 
     @Mock private LoadSchedulePort loadSchedulePort;
     @Mock private StudySessionPort studySessionPort;
-    @Mock private StudySubjectPort studySubjectPort;
+    @Mock private LoadCategoryPort loadCategoryPort;
     @Mock private GenerateWeeklyReportWithAiPort reportAiPort;
     @InjectMocks private GenerateWeeklyReportService generateWeeklyReportService;
 
@@ -52,10 +52,10 @@ class GenerateWeeklyReportServiceTest {
                 .build();
     }
 
-    private StudySession session(Long id, Long subjectId, int durationMinutes) {
+    private StudySession session(Long id, Long categoryId, int durationMinutes) {
         LocalDateTime start = LocalDateTime.of(WEEK_START, LocalTime.of(9, 0));
         return StudySession.builder()
-                .id(id).userId(USER_ID).subjectId(subjectId)
+                .id(id).userId(USER_ID).categoryId(categoryId)
                 .startedAt(start)
                 .endedAt(start.plusMinutes(durationMinutes))
                 .durationMinutes(durationMinutes)
@@ -82,9 +82,9 @@ class GenerateWeeklyReportServiceTest {
                         session(1L, 10L, 60),
                         session(2L, 11L, 30)
                 ));
-        given(studySubjectPort.findAllByUserId(USER_ID)).willReturn(List.of(
-                StudySubject.builder().id(10L).userId(USER_ID).name("수학").color("#FF0000").build(),
-                StudySubject.builder().id(11L).userId(USER_ID).name("영어").color("#00FF00").build()
+        given(loadCategoryPort.findAllByUserIdOrDefault(USER_ID)).willReturn(List.of(
+                Category.builder().id(10L).userId(USER_ID).name("수학").color("#FF0000").build(),
+                Category.builder().id(11L).userId(USER_ID).name("영어").color("#00FF00").build()
         ));
         given(reportAiPort.generate(any(ReportRequest.class))).willReturn(stubAiReport());
 
@@ -94,8 +94,8 @@ class GenerateWeeklyReportServiceTest {
         assertThat(report.completedSchedules()).isEqualTo(2);
         assertThat(report.completionRate()).isEqualTo(66.7);
         assertThat(report.totalStudyMinutes()).isEqualTo(90);
-        assertThat(report.studyBySubject()).hasSize(2);
-        assertThat(report.studyBySubject().get(0).subjectName()).isEqualTo("수학"); // 60분 → 내림차순 1위
+        assertThat(report.studyByCategory()).hasSize(2);
+        assertThat(report.studyByCategory().get(0).categoryName()).isEqualTo("수학"); // 60분 → 내림차순 1위
         assertThat(report.summary()).isEqualTo("이번 주 요약");
         assertThat(report.strengths()).containsExactly("잘한 점");
         assertThat(report.nextWeekAdvice()).isEqualTo("다음 주 조언");
@@ -108,30 +108,30 @@ class GenerateWeeklyReportServiceTest {
                 .willReturn(List.of());
         given(studySessionPort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of());
-        given(studySubjectPort.findAllByUserId(USER_ID)).willReturn(List.of());
+        given(loadCategoryPort.findAllByUserIdOrDefault(USER_ID)).willReturn(List.of());
         given(reportAiPort.generate(any(ReportRequest.class))).willReturn(stubAiReport());
 
         WeeklyReport report = generateWeeklyReportService.generate(USER_ID, WEEK_START, WEEK_END);
 
         assertThat(report.completionRate()).isEqualTo(0.0);
         assertThat(report.totalStudyMinutes()).isEqualTo(0);
-        assertThat(report.studyBySubject()).isEmpty();
+        assertThat(report.studyByCategory()).isEmpty();
     }
 
     @Test
-    @DisplayName("삭제된 과목의 세션은 '삭제된 과목'으로 표시된다")
-    void 삭제된_과목_세션_처리() {
+    @DisplayName("삭제된 카테고리의 세션은 '삭제된 카테고리'로 표시된다")
+    void 삭제된_카테고리_세션_처리() {
         given(loadSchedulePort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
                 .willReturn(List.of());
         given(studySessionPort.findByUserIdAndDateRange(USER_ID, WEEK_START, WEEK_END))
-                .willReturn(List.of(session(1L, 99L, 45))); // 존재하지 않는 subjectId
-        given(studySubjectPort.findAllByUserId(USER_ID)).willReturn(List.of());
+                .willReturn(List.of(session(1L, 99L, 45))); // 존재하지 않는 categoryId
+        given(loadCategoryPort.findAllByUserIdOrDefault(USER_ID)).willReturn(List.of());
         given(reportAiPort.generate(any(ReportRequest.class))).willReturn(stubAiReport());
 
         WeeklyReport report = generateWeeklyReportService.generate(USER_ID, WEEK_START, WEEK_END);
 
-        assertThat(report.studyBySubject()).hasSize(1);
-        assertThat(report.studyBySubject().get(0).subjectName()).isEqualTo("삭제된 과목");
+        assertThat(report.studyByCategory()).hasSize(1);
+        assertThat(report.studyByCategory().get(0).categoryName()).isEqualTo("삭제된 카테고리");
         assertThat(report.totalStudyMinutes()).isEqualTo(45);
     }
 }

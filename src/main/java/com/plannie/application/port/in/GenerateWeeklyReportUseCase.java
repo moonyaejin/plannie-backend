@@ -16,7 +16,7 @@ public interface GenerateWeeklyReportUseCase {
             double completionRate,
             // 공부 시간
             int totalStudyMinutes,
-            List<SubjectTime> studyBySubject,
+            List<CategoryTime> studyByCategory,
             // AI 분석
             String summary,
             List<String> strengths,
@@ -24,5 +24,5 @@ public interface GenerateWeeklyReportUseCase {
             String nextWeekAdvice
     ) {}
 
-    record SubjectTime(String subjectName, int totalMinutes) {}
+    record CategoryTime(String categoryName, int totalMinutes) {}
 }
