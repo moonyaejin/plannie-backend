@@ -83,8 +83,8 @@ public class OpenAiStudyPlanAdapter implements GenerateStudyPlanWithAiPort {
               "title": "파트5 문법: 동사의 형태 집중 훈련",
               "memo": "동사/형용사/부사 구별 문제 30문항 풀기 → 오답 원인 분석 → 핵심 문법 규칙 노트 정리",
               "date": "YYYY-MM-DD",
-              "start_time": "HH:mm",
-              "end_time": "HH:mm",
+              "start_time": null,
+              "end_time": null,
               "week": 1
             }
           ]
@@ -95,9 +95,8 @@ public class OpenAiStudyPlanAdapter implements GenerateStudyPlanWithAiPort {
         - 반드시 시작일(startDate)부터 시험 전날(examDate - 1일)까지 총 학습 일수만큼 schedule을 생성하세요.
           어떤 날도 빠뜨리면 안 됩니다. 각 날짜에 정확히 1개의 항목을 생성하세요.
         - ⛔ 시험 당일(examDate)은 schedule에 절대 포함하지 마세요. 시험 전날이 마지막 학습일입니다.
-        - start_time은 userRequest에 명시된 시작 시간을 사용하세요.
-          end_time = start_time + daily_hours (정확히 daily_hours 시간 후)
-          예: 시작 14:00, daily_hours=4 → end_time=18:00
+        - 학습 계획에는 시간을 지정하지 않습니다. start_time과 end_time은 항상 null로 두세요.
+          (하루 학습 시간(daily_hours)은 각 날짜에 얼마나 공부할지 분량을 정하는 데만 참고하고, 시간대는 절대 채우지 마세요)
         - 각 title은 반드시 [파트/영역명 + 세부 주제]를 포함해야 합니다
           나쁜 예: "파트5 공부", "토익 학습"
           좋은 예: "파트5 문법: 품사 구별과 어휘 유형 30문제", "파트3 대화 유형: 요청·제안 표현 집중"

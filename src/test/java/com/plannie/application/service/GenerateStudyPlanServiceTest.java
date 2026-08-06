@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,8 +73,8 @@ class GenerateStudyPlanServiceTest {
     }
 
     @Test
-    @DisplayName("시간이 null이거나 파싱 불가능하면 기본값(20:00~22:00)으로 저장된다")
-    void 시간_파싱_실패시_기본값() {
+    @DisplayName("시간이 null이거나 파싱 불가능하면 시간 없이(null) 저장된다")
+    void 시간_없으면_null로_저장() {
         AiStudyPlan aiPlan = new AiStudyPlan(
                 "계획",
                 List.of(),
@@ -94,8 +93,7 @@ class GenerateStudyPlanServiceTest {
         generateStudyPlanService.generate(command);
 
         verify(saveSchedulePort).save(argThat(s ->
-                s.getStartTime().equals(LocalTime.of(20, 0)) &&
-                s.getEndTime().equals(LocalTime.of(22, 0))
+                s.getStartTime() == null && s.getEndTime() == null
         ));
     }
 

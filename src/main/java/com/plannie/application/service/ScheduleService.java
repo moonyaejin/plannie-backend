@@ -47,13 +47,15 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         // 1. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
 
-        // 2. 시간 충돌 검사
-        checkScheduleConflict(
-                command.userId(),
-                command.startDate(),
-                command.startTime(),
-                command.endTime()
-        );
+        // 2. 시간 충돌 검사 (시간 없는 일정은 충돌 개념이 없어 건너뜀)
+        if (command.startTime() != null && command.endTime() != null) {
+            checkScheduleConflict(
+                    command.userId(),
+                    command.startDate(),
+                    command.startTime(),
+                    command.endTime()
+            );
+        }
 
         // 3. 도메인 객체 생성
         Schedule schedule = Schedule.builder()
@@ -150,12 +152,10 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
             views.addAll(expandRepeatScheduleToViews(repeating, startDate, endDate, exceptions, completions));
         }
 
-        // 6. 날짜순 정렬
-        views.sort((a, b) -> {
-            int dateCompare = a.getStartDate().compareTo(b.getStartDate());
-            if (dateCompare != 0) return dateCompare;
-            return a.getStartTime().compareTo(b.getStartTime());
-        });
+        // 6. 날짜순 정렬 (시간 없는 일정은 해당 날짜의 맨 앞으로)
+        views.sort(Comparator
+                .comparing(ScheduleView::getStartDate)
+                .thenComparing(ScheduleView::getStartTime, Comparator.nullsFirst(Comparator.naturalOrder())));
 
         return views;
     }
@@ -372,6 +372,12 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     }
 
     private void validateTimeRange(LocalTime startTime, LocalTime endTime) {
+        if (startTime == null && endTime == null) {
+            return;
+        }
+        if (startTime == null || endTime == null) {
+            throw new BusinessException(ErrorCode.SCHEDULE_TIME_PARTIALLY_SET);
+        }
         if (startTime.isAfter(endTime)) {
             throw new BusinessException(ErrorCode.INVALID_TIME_RANGE);
         }
