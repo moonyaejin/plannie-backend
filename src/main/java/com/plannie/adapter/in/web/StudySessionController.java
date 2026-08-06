@@ -3,7 +3,7 @@ package com.plannie.adapter.in.web;
 import com.plannie.adapter.in.web.dto.StudySessionRequest;
 import com.plannie.adapter.in.web.dto.StudySessionResponse;
 import com.plannie.application.port.in.StudySessionUseCase;
-import com.plannie.application.port.in.StudySessionUseCase.SubjectSummary;
+import com.plannie.application.port.in.StudySessionUseCase.CategorySummary;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,7 +33,7 @@ public class StudySessionController {
             @Valid @RequestBody StudySessionRequest request) {
 
         return StudySessionResponse.from(
-                studySessionUseCase.start(new StudySessionUseCase.StartCommand(userId, request.subjectId()))
+                studySessionUseCase.start(new StudySessionUseCase.StartCommand(userId, request.categoryId()))
         );
     }
 
@@ -64,9 +64,9 @@ public class StudySessionController {
                 .stream().map(StudySessionResponse::from).toList();
     }
 
-    @Operation(summary = "기간별 과목별 요약")
+    @Operation(summary = "기간별 카테고리별 요약")
     @GetMapping("/summary")
-    public List<SubjectSummary> getSummary(
+    public List<CategorySummary> getSummary(
             @AuthenticationPrincipal Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {

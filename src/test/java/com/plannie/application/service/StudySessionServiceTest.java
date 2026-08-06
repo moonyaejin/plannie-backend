@@ -1,12 +1,12 @@
 package com.plannie.application.service;
 
 import com.plannie.application.port.in.StudySessionUseCase;
+import com.plannie.application.port.out.LoadCategoryPort;
 import com.plannie.application.port.out.StudySessionPort;
-import com.plannie.application.port.out.StudySubjectPort;
 import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
+import com.plannie.domain.schedule.Category;
 import com.plannie.domain.studysession.StudySession;
-import com.plannie.domain.studysession.StudySubject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -31,19 +31,19 @@ import static org.mockito.Mockito.verify;
 class StudySessionServiceTest {
 
     @Mock private StudySessionPort studySessionPort;
-    @Mock private StudySubjectPort studySubjectPort;
+    @Mock private LoadCategoryPort loadCategoryPort;
     @InjectMocks private StudySessionService studySessionService;
 
     private static final Long USER_ID = 1L;
-    private static final Long SUBJECT_ID = 10L;
+    private static final Long CATEGORY_ID = 10L;
 
-    private StudySubject subject() {
-        return StudySubject.builder().id(SUBJECT_ID).userId(USER_ID).name("수학").color("#FF0000").build();
+    private Category category() {
+        return Category.builder().id(CATEGORY_ID).userId(USER_ID).name("수학").color("#FF0000").build();
     }
 
     private StudySession activeSession() {
         return StudySession.builder()
-                .id(1L).userId(USER_ID).subjectId(SUBJECT_ID)
+                .id(1L).userId(USER_ID).categoryId(CATEGORY_ID)
                 .startedAt(LocalDateTime.now().minusMinutes(30))
                 .build();
     }
@@ -59,40 +59,56 @@ class StudySessionServiceTest {
     @Test
     @DisplayName("진행 중인 세션이 없으면 새 세션을 시작한다")
     void 세션_시작_성공() {
-        given(studySubjectPort.findByIdAndUserId(SUBJECT_ID, USER_ID)).willReturn(Optional.of(subject()));
+        given(loadCategoryPort.findByIdAndUserIdOrDefault(CATEGORY_ID, USER_ID)).willReturn(Optional.of(category()));
         given(studySessionPort.findActiveByUserId(USER_ID)).willReturn(Optional.empty());
         given(studySessionPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
         StudySession result = studySessionService.start(
-                new StudySessionUseCase.StartCommand(USER_ID, SUBJECT_ID)
+                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID)
         );
 
-        assertThat(result.getSubjectId()).isEqualTo(SUBJECT_ID);
+        assertThat(result.getCategoryId()).isEqualTo(CATEGORY_ID);
         assertThat(result.isActive()).isTrue();
         verify(studySessionPort).save(any());
     }
 
     @Test
-    @DisplayName("존재하지 않는 과목이면 STUDY_SUBJECT_NOT_FOUND 예외 발생")
-    void 없는_과목으로_세션_시작_예외() {
-        given(studySubjectPort.findByIdAndUserId(SUBJECT_ID, USER_ID)).willReturn(Optional.empty());
+    @DisplayName("존재하지 않는 카테고리면 CATEGORY_NOT_FOUND 예외 발생")
+    void 없는_카테고리로_세션_시작_예외() {
+        given(loadCategoryPort.findByIdAndUserIdOrDefault(CATEGORY_ID, USER_ID)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> studySessionService.start(
-                new StudySessionUseCase.StartCommand(USER_ID, SUBJECT_ID)
+                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID)
         ))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
-                .isEqualTo(ErrorCode.STUDY_SUBJECT_NOT_FOUND);
+                .isEqualTo(ErrorCode.CATEGORY_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("기본 카테고리(userId=null)로도 세션을 시작할 수 있다")
+    void 기본_카테고리로_세션_시작_성공() {
+        Category defaultCategory = Category.builder().id(99L).userId(null).name("기본").color("#4183F3").build();
+        given(loadCategoryPort.findByIdAndUserIdOrDefault(99L, USER_ID)).willReturn(Optional.of(defaultCategory));
+        given(studySessionPort.findActiveByUserId(USER_ID)).willReturn(Optional.empty());
+        given(studySessionPort.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        StudySession result = studySessionService.start(
+                new StudySessionUseCase.StartCommand(USER_ID, 99L)
+        );
+
+        assertThat(result.getCategoryId()).isEqualTo(99L);
+        verify(studySessionPort).save(any());
     }
 
     @Test
     @DisplayName("이미 진행 중인 세션이 있으면 STUDY_SESSION_ALREADY_ACTIVE 예외 발생")
     void 세션_중복_시작_예외() {
-        given(studySubjectPort.findByIdAndUserId(SUBJECT_ID, USER_ID)).willReturn(Optional.of(subject()));
+        given(loadCategoryPort.findByIdAndUserIdOrDefault(CATEGORY_ID, USER_ID)).willReturn(Optional.of(category()));
         given(studySessionPort.findActiveByUserId(USER_ID)).willReturn(Optional.of(activeSession()));
 
         assertThatThrownBy(() -> studySessionService.start(
-                new StudySessionUseCase.StartCommand(USER_ID, SUBJECT_ID)
+                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID)
         ))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
@@ -127,30 +143,30 @@ class StudySessionServiceTest {
     // ==================== 요약 ====================
 
     @Test
-    @DisplayName("기간별 과목별 총 공부 시간을 내림차순으로 반환한다")
-    void 과목별_요약_정렬() {
+    @DisplayName("기간별 카테고리별 총 공부 시간을 내림차순으로 반환한다")
+    void 카테고리별_요약_정렬() {
         Long mathId = 10L;
         Long engId = 11L;
 
-        StudySession math = StudySession.builder().id(1L).userId(USER_ID).subjectId(mathId)
+        StudySession math = StudySession.builder().id(1L).userId(USER_ID).categoryId(mathId)
                 .startedAt(LocalDateTime.now().minusHours(2)).endedAt(LocalDateTime.now().minusHours(1))
                 .durationMinutes(60).build();
-        StudySession english = StudySession.builder().id(2L).userId(USER_ID).subjectId(engId)
+        StudySession english = StudySession.builder().id(2L).userId(USER_ID).categoryId(engId)
                 .startedAt(LocalDateTime.now().minusHours(1)).endedAt(LocalDateTime.now())
                 .durationMinutes(30).build();
 
         given(studySessionPort.findByUserIdAndDateRange(any(), any(), any()))
                 .willReturn(List.of(math, english));
-        given(studySubjectPort.findAllByUserId(USER_ID)).willReturn(List.of(
-                StudySubject.builder().id(mathId).userId(USER_ID).name("수학").color("#FF0000").build(),
-                StudySubject.builder().id(engId).userId(USER_ID).name("영어").color("#00FF00").build()
+        given(loadCategoryPort.findAllByUserIdOrDefault(USER_ID)).willReturn(List.of(
+                Category.builder().id(mathId).userId(USER_ID).name("수학").color("#FF0000").build(),
+                Category.builder().id(engId).userId(USER_ID).name("영어").color("#00FF00").build()
         ));
 
-        List<StudySessionUseCase.SubjectSummary> result =
+        List<StudySessionUseCase.CategorySummary> result =
                 studySessionService.getSummary(USER_ID, LocalDate.now(), LocalDate.now());
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).subjectName()).isEqualTo("수학");
-        assertThat(result.get(1).subjectName()).isEqualTo("영어");
+        assertThat(result.get(0).categoryName()).isEqualTo("수학");
+        assertThat(result.get(1).categoryName()).isEqualTo("영어");
     }
 }

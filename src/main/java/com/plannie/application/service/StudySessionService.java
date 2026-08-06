@@ -1,12 +1,12 @@
 package com.plannie.application.service;
 
 import com.plannie.application.port.in.StudySessionUseCase;
+import com.plannie.application.port.out.LoadCategoryPort;
 import com.plannie.application.port.out.StudySessionPort;
-import com.plannie.application.port.out.StudySubjectPort;
 import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
+import com.plannie.domain.schedule.Category;
 import com.plannie.domain.studysession.StudySession;
-import com.plannie.domain.studysession.StudySubject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,14 +25,14 @@ import java.util.stream.Collectors;
 public class StudySessionService implements StudySessionUseCase {
 
     private final StudySessionPort studySessionPort;
-    private final StudySubjectPort studySubjectPort;
+    private final LoadCategoryPort loadCategoryPort;
 
     @Override
     @Transactional
     public StudySession start(StartCommand command) {
-        // 과목 존재 + 권한 확인
-        studySubjectPort.findByIdAndUserId(command.subjectId(), command.userId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.STUDY_SUBJECT_NOT_FOUND));
+        // 카테고리 존재(기본 카테고리 포함) + 권한 확인
+        loadCategoryPort.findByIdAndUserIdOrDefault(command.categoryId(), command.userId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         // 이미 진행 중인 세션 확인
         studySessionPort.findActiveByUserId(command.userId()).ifPresent(s -> {
@@ -41,7 +41,7 @@ public class StudySessionService implements StudySessionUseCase {
 
         StudySession session = StudySession.builder()
                 .userId(command.userId())
-                .subjectId(command.subjectId())
+                .categoryId(command.categoryId())
                 .startedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")))
                 .build();
 
@@ -74,29 +74,29 @@ public class StudySessionService implements StudySessionUseCase {
     }
 
     @Override
-    public List<SubjectSummary> getSummary(Long userId, LocalDate startDate, LocalDate endDate) {
+    public List<CategorySummary> getSummary(Long userId, LocalDate startDate, LocalDate endDate) {
         List<StudySession> sessions = studySessionPort.findByUserIdAndDateRange(userId, startDate, endDate);
 
-        // 과목 정보 조회 (이름, 색상)
-        Map<Long, StudySubject> subjectMap = studySubjectPort.findAllByUserId(userId).stream()
-                .collect(Collectors.toMap(StudySubject::getId, s -> s));
+        // 카테고리 정보 조회 (이름, 색상)
+        Map<Long, Category> categoryMap = loadCategoryPort.findAllByUserIdOrDefault(userId).stream()
+                .collect(Collectors.toMap(Category::getId, c -> c));
 
-        // subjectId 기준으로 그룹핑 후 합산
+        // categoryId 기준으로 그룹핑 후 합산
         Map<Long, List<StudySession>> grouped = sessions.stream()
                 .filter(s -> !s.isActive())
-                .collect(Collectors.groupingBy(StudySession::getSubjectId));
+                .collect(Collectors.groupingBy(StudySession::getCategoryId));
 
         return grouped.entrySet().stream()
                 .map(entry -> {
-                    Long subjectId = entry.getKey();
+                    Long categoryId = entry.getKey();
                     List<StudySession> group = entry.getValue();
                     int totalMinutes = group.stream()
                             .mapToInt(s -> s.getDurationMinutes() != null ? s.getDurationMinutes() : 0)
                             .sum();
-                    StudySubject subject = subjectMap.get(subjectId);
-                    String name = subject != null ? subject.getName() : "삭제된 과목";
-                    String color = subject != null ? subject.getColor() : null;
-                    return new SubjectSummary(subjectId, name, color, totalMinutes, group.size());
+                    Category category = categoryMap.get(categoryId);
+                    String name = category != null ? category.getName() : "삭제된 카테고리";
+                    String color = category != null ? category.getColor() : null;
+                    return new CategorySummary(categoryId, name, color, totalMinutes, group.size());
                 })
                 .sorted((a, b) -> b.totalMinutes() - a.totalMinutes())
                 .toList();

@@ -30,7 +30,7 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
         }
         return toDomain(repository.save(StudySessionJpaEntity.builder()
                 .userId(session.getUserId())
-                .subjectId(session.getSubjectId())
+                .categoryId(session.getCategoryId())
                 .startedAt(session.getStartedAt())
                 .build()));
     }
@@ -64,8 +64,8 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
     }
 
     @Override
-    public List<StudySession> findByUserIdAndSubjectId(Long userId, Long subjectId) {
-        return repository.findByUserIdAndSubjectId(userId, subjectId)
+    public List<StudySession> findByUserIdAndCategoryId(Long userId, Long categoryId) {
+        return repository.findByUserIdAndCategoryId(userId, categoryId)
                 .stream().map(this::toDomain).toList();
     }
 
@@ -73,7 +73,7 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
         return StudySession.builder()
                 .id(entity.getId())
                 .userId(entity.getUserId())
-                .subjectId(entity.getSubjectId())
+                .categoryId(entity.getCategoryId())
                 .startedAt(entity.getStartedAt())
                 .endedAt(entity.getEndedAt())
                 .durationMinutes(entity.getDurationMinutes())

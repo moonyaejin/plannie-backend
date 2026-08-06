@@ -33,11 +33,22 @@ public class CategoryPersistenceAdapter implements LoadCategoryPort, SaveCategor
     }
 
     @Override
+    public Optional<Category> findByIdAndUserIdOrDefault(Long id, Long userId) {
+        return categoryRepository.findByIdAndUserIdOrDefault(id, userId)
+                .map(categoryMapper::toDomain);
+    }
+
+    @Override
     public List<Category> findAllByUserIdOrDefault(Long userId) {
         return categoryRepository.findAllByUserIdOrDefault(userId)
                 .stream()
                 .map(categoryMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public boolean existsByUserIdAndName(Long userId, String name) {
+        return categoryRepository.existsByUserIdAndCategoryName(userId, name);
     }
 
     // ==================== SaveCategoryPort 구현 ====================

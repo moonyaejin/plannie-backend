@@ -16,14 +16,14 @@ public interface StudySessionUseCase {
 
     List<StudySession> getByDate(Long userId, LocalDate date);
 
-    List<SubjectSummary> getSummary(Long userId, LocalDate startDate, LocalDate endDate);
+    List<CategorySummary> getSummary(Long userId, LocalDate startDate, LocalDate endDate);
 
-    record StartCommand(Long userId, Long subjectId) {}
+    record StartCommand(Long userId, Long categoryId) {}
 
-    record SubjectSummary(
-            Long subjectId,
-            String subjectName,
-            String subjectColor,
+    record CategorySummary(
+            Long categoryId,
+            String categoryName,
+            String categoryColor,
             int totalMinutes,
             int sessionCount
     ) {}

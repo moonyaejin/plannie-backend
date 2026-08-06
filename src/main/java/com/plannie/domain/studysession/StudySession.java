@@ -11,7 +11,7 @@ public class StudySession {
 
     private final Long id;
     private final Long userId;
-    private final Long subjectId;
+    private final Long categoryId;
     private final LocalDateTime startedAt;
     private LocalDateTime endedAt;
     private Integer durationMinutes;
