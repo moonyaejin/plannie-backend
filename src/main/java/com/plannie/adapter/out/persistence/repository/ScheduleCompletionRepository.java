@@ -13,6 +13,8 @@ public interface ScheduleCompletionRepository extends JpaRepository<ScheduleComp
     Optional<ScheduleCompletionEntity> findByScheduleIdAndCompletionDate(
             Long scheduleId, LocalDate completionDate);
 
+    void deleteByScheduleId(Long scheduleId);
+
     @Query("SELECT c FROM ScheduleCompletionEntity c WHERE c.scheduleId IN :ids " +
             "AND c.completionDate BETWEEN :startDate AND :endDate")
     List<ScheduleCompletionEntity> findByScheduleIdsAndDateRange(

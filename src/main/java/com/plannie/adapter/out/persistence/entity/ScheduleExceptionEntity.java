@@ -64,6 +64,23 @@ public class ScheduleExceptionEntity {
         this.createdAt = LocalDateTime.now();
     }
 
+    public void modify(String modifiedTitle, String modifiedMemo,
+                       LocalTime modifiedStartTime, LocalTime modifiedEndTime) {
+        this.exceptionType = ExceptionType.MODIFIED;
+        this.modifiedTitle = modifiedTitle;
+        this.modifiedMemo = modifiedMemo;
+        this.modifiedStartTime = modifiedStartTime;
+        this.modifiedEndTime = modifiedEndTime;
+    }
+
+    public void markDeleted() {
+        this.exceptionType = ExceptionType.DELETED;
+        this.modifiedTitle = null;
+        this.modifiedMemo = null;
+        this.modifiedStartTime = null;
+        this.modifiedEndTime = null;
+    }
+
     public enum ExceptionType {
         DELETED,
         MODIFIED

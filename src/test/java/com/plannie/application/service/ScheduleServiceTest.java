@@ -1,6 +1,7 @@
 package com.plannie.application.service;
 
 import com.plannie.application.port.in.CreateScheduleUseCase.CreateScheduleCommand;
+import com.plannie.application.port.in.ScheduleView;
 import com.plannie.application.port.in.UpdateScheduleUseCase.UpdateScheduleCommand;
 import com.plannie.application.port.out.LoadSchedulePort;
 import com.plannie.application.port.out.SaveSchedulePort;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,6 +59,14 @@ class ScheduleServiceTest {
                 .startDate(DATE).endDate(DATE)
                 .startTime(START).endTime(END)
                 .completed(false).repeatRule(RepeatRule.none()).build();
+    }
+
+    private Schedule repeatingSchedule() {
+        return Schedule.builder()
+                .id(2L).userId(USER_ID).title("반복 일정")
+                .startDate(DATE).endDate(DATE)
+                .startTime(START).endTime(END)
+                .completed(false).repeatRule(RepeatRule.daily(null)).build();
     }
 
     // ==================== 일정 생성 ====================
@@ -122,7 +132,7 @@ class ScheduleServiceTest {
         given(loadSchedulePort.findByIdAndUserId(99L, USER_ID)).willReturn(Optional.empty());
 
         UpdateScheduleCommand cmd = new UpdateScheduleCommand(
-                99L, USER_ID, "수정", null, DATE, null, START, END, null, null
+                99L, USER_ID, "수정", null, DATE, null, START, END, null, null, null
         );
 
         assertThatThrownBy(() -> scheduleService.updateSchedule(cmd))
@@ -138,7 +148,7 @@ class ScheduleServiceTest {
     void 없는_일정_삭제_예외() {
         given(loadSchedulePort.findByIdAndUserId(99L, USER_ID)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> scheduleService.deleteSchedule(99L, USER_ID))
+        assertThatThrownBy(() -> scheduleService.deleteSchedule(99L, USER_ID, null))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.SCHEDULE_NOT_FOUND);
@@ -150,8 +160,105 @@ class ScheduleServiceTest {
         given(loadSchedulePort.findByIdAndUserId(1L, USER_ID))
                 .willReturn(Optional.of(savedSchedule()));
 
-        scheduleService.deleteSchedule(1L, USER_ID);
+        scheduleService.deleteSchedule(1L, USER_ID, null);
 
         verify(saveSchedulePort).delete(1L);
+    }
+
+    // ==================== 날짜별 조회: 반복 일정 완료 상태 동기화 ====================
+
+    @Test
+    @DisplayName("날짜별 조회 시 반복 일정의 완료 상태는 ScheduleCompletion 기준으로 반영된다")
+    void 날짜별_조회시_반복일정_완료상태_반영() {
+        Schedule repeating = repeatingSchedule();
+
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(USER_ID, DATE, DATE))
+                .willReturn(List.of());
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID))
+                .willReturn(List.of(repeating));
+        given(loadSchedulePort.findExceptions(List.of(2L), DATE, DATE))
+                .willReturn(Map.of());
+        given(loadSchedulePort.findCompletions(List.of(2L), DATE, DATE))
+                .willReturn(Map.of("2_" + DATE, true));
+
+        List<ScheduleView> result = scheduleService.getSchedulesByDate(USER_ID, DATE);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).isCompleted()).isTrue();
+    }
+
+    // ==================== 반복 일정 완료 토글 이원화 방지 ====================
+
+    @Test
+    @DisplayName("반복 일정에 toggleComplete를 호출하면 예외가 발생한다")
+    void 반복일정_toggleComplete_예외() {
+        given(loadSchedulePort.findByIdAndUserId(2L, USER_ID))
+                .willReturn(Optional.of(repeatingSchedule()));
+
+        assertThatThrownBy(() -> scheduleService.toggleComplete(2L, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.RECURRING_SCHEDULE_TOGGLE_NOT_ALLOWED);
+
+        verify(saveSchedulePort, never()).toggleComplete(any());
+    }
+
+    // ==================== 반복 일정 occurrence 단위 수정/삭제 ====================
+
+    @Test
+    @DisplayName("occurrenceDate 지정 시 반복 일정은 해당 날짜만 수정되고 시리즈는 그대로다")
+    void 반복일정_occurrence_수정() {
+        given(loadSchedulePort.findByIdAndUserId(2L, USER_ID))
+                .willReturn(Optional.of(repeatingSchedule()));
+
+        UpdateScheduleCommand cmd = new UpdateScheduleCommand(
+                2L, USER_ID, "이 날만 수정", null, DATE, null, START, END, null, null, DATE
+        );
+
+        scheduleService.updateSchedule(cmd);
+
+        verify(saveSchedulePort).saveOccurrenceModification(2L, DATE, "이 날만 수정", null, START, END);
+        verify(saveSchedulePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("occurrenceDate 없이 반복 일정을 수정하면 시리즈 전체가 수정된다")
+    void 반복일정_전체_수정() {
+        given(loadSchedulePort.findByIdAndUserId(2L, USER_ID))
+                .willReturn(Optional.of(repeatingSchedule()));
+        given(saveSchedulePort.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        UpdateScheduleCommand cmd = new UpdateScheduleCommand(
+                2L, USER_ID, "전체 수정", null, DATE, null, START, END, null, null, null
+        );
+
+        scheduleService.updateSchedule(cmd);
+
+        verify(saveSchedulePort).save(any());
+        verify(saveSchedulePort, never()).saveOccurrenceModification(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("occurrenceDate 지정 시 반복 일정은 해당 날짜만 삭제되고 시리즈는 남는다")
+    void 반복일정_occurrence_삭제() {
+        given(loadSchedulePort.findByIdAndUserId(2L, USER_ID))
+                .willReturn(Optional.of(repeatingSchedule()));
+
+        scheduleService.deleteSchedule(2L, USER_ID, DATE);
+
+        verify(saveSchedulePort).deleteOccurrence(2L, DATE);
+        verify(saveSchedulePort, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("occurrenceDate 없이 반복 일정을 삭제하면 시리즈 전체가 삭제된다")
+    void 반복일정_전체_삭제() {
+        given(loadSchedulePort.findByIdAndUserId(2L, USER_ID))
+                .willReturn(Optional.of(repeatingSchedule()));
+
+        scheduleService.deleteSchedule(2L, USER_ID, null);
+
+        verify(saveSchedulePort).delete(2L);
+        verify(saveSchedulePort, never()).deleteOccurrence(any(), any());
     }
 }

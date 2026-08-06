@@ -87,21 +87,8 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     }
 
     @Override
-    public List<Schedule> getSchedulesByDate(Long userId, LocalDate date) {
-        // 1. 해당 날짜 시작 일정
-        List<Schedule> schedules = loadSchedulePort.findByUserIdAndDate(userId, date);
-
-        // 2. 반복 일정 중 해당 날짜에 적용되는 것
-        List<Schedule> repeatingSchedules = loadSchedulePort.findRepeatingSchedules(userId);
-
-        List<Schedule> applicableRepeating = repeatingSchedules.stream()
-                .filter(s -> s.getRepeatRule().appliesTo(date))
-                .toList();
-
-        // 3. 합쳐서 반환
-        List<Schedule> result = new ArrayList<>(schedules);
-        result.addAll(applicableRepeating);
-        return result;
+    public List<ScheduleView> getSchedulesByDate(Long userId, LocalDate date) {
+        return buildScheduleViews(userId, date, date);
     }
 
     @Override
@@ -187,7 +174,20 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         // 2. 시간 유효성 검증
         validateTimeRange(command.startTime(), command.endTime());
 
-        // 3. 도메인 객체 업데이트
+        // 3. 반복 일정의 occurrence 하나만 수정하는 경우 — 시리즈 원본은 그대로 두고 예외만 기록
+        if (command.occurrenceDate() != null && existingSchedule.getRepeatRule().isRepeating()) {
+            saveSchedulePort.saveOccurrenceModification(
+                    existingSchedule.getId(),
+                    command.occurrenceDate(),
+                    command.title(),
+                    command.memo(),
+                    command.startTime(),
+                    command.endTime()
+            );
+            return existingSchedule;
+        }
+
+        // 4. 시리즈 전체(또는 반복 없는 일정) 수정
         existingSchedule.update(
                 command.title(),
                 command.memo(),
@@ -199,7 +199,6 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
                 command.reminderMinutes()
         );
 
-        // 4. DB 저장
         return saveSchedulePort.save(existingSchedule);
     }
 
@@ -211,6 +210,12 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        // 반복 일정은 날짜별 완료 처리(toggleRecurringComplete)를 써야 함 — 여기서 토글하면
+        // 시리즈 전체가 한꺼번에 완료된 것처럼 보이는 버그로 이어짐
+        if (schedule.getRepeatRule().isRepeating()) {
+            throw new BusinessException(ErrorCode.RECURRING_SCHEDULE_TOGGLE_NOT_ALLOWED);
+        }
 
         // 일회성 일정 완료 토글
         saveSchedulePort.toggleComplete(scheduleId);
@@ -234,10 +239,17 @@ public class ScheduleService implements CreateScheduleUseCase, GetScheduleUseCas
     @Override
     @Transactional
     @CacheEvict(value = "schedules:monthly", allEntries = true)
-    public void deleteSchedule(Long scheduleId, Long userId) {
+    public void deleteSchedule(Long scheduleId, Long userId, LocalDate occurrenceDate) {
         Schedule schedule = loadSchedulePort
                 .findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        // 반복 일정의 occurrence 하나만 삭제하는 경우 — 시리즈는 남기고 해당 날짜만 예외 처리
+        if (occurrenceDate != null && schedule.getRepeatRule().isRepeating()) {
+            saveSchedulePort.deleteOccurrence(scheduleId, occurrenceDate);
+            log.info("Deleted occurrence {} of schedule {} for user {}", occurrenceDate, scheduleId, userId);
+            return;
+        }
 
         saveSchedulePort.delete(schedule.getId());
         log.info("Deleted schedule {} for user {}", scheduleId, userId);
