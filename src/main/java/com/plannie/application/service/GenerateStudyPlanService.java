@@ -52,8 +52,8 @@ public class GenerateStudyPlanService implements GenerateStudyPlanUseCase {
                 .memo(item.memo())
                 .startDate(date)
                 .endDate(date)
-                .startTime(startTime != null ? startTime : LocalTime.of(20, 0))
-                .endTime(endTime != null ? endTime : LocalTime.of(22, 0))
+                .startTime(startTime)
+                .endTime(endTime)
                 .completed(false)
                 .repeatRule(RepeatRule.none())
                 .build();

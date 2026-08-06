@@ -261,4 +261,53 @@ class ScheduleServiceTest {
         verify(saveSchedulePort).delete(2L);
         verify(saveSchedulePort, never()).deleteOccurrence(any(), any());
     }
+
+    // ==================== 시간 없는 일정 ====================
+
+    @Test
+    @DisplayName("시간 없이 일정을 생성하면 충돌 검사 없이 저장된다")
+    void 시간없는_일정_생성() {
+        given(saveSchedulePort.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        Schedule result = scheduleService.createSchedule(command(null, null));
+
+        assertThat(result.getStartTime()).isNull();
+        assertThat(result.getEndTime()).isNull();
+        verify(loadSchedulePort, never()).findConflictingSchedules(any(), any(), any(), any());
+        verify(saveSchedulePort).save(any());
+    }
+
+    @Test
+    @DisplayName("시작 시간만 있고 종료 시간이 없으면 SCHEDULE_TIME_PARTIALLY_SET 예외가 발생한다")
+    void 시간_한쪽만_입력시_예외() {
+        assertThatThrownBy(() ->
+                scheduleService.createSchedule(command(START, null))
+        )
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.SCHEDULE_TIME_PARTIALLY_SET);
+
+        verify(saveSchedulePort, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("같은 날짜 조회 시 시간 없는 일정이 시간 있는 일정보다 앞에 정렬된다")
+    void 시간없는_일정이_먼저_정렬된다() {
+        Schedule noTime = Schedule.builder()
+                .id(3L).userId(USER_ID).title("시간 없는 일정")
+                .startDate(DATE).endDate(DATE)
+                .completed(false).repeatRule(RepeatRule.none()).build();
+        Schedule timed = savedSchedule();
+
+        given(loadSchedulePort.findOneTimeSchedulesByDateRange(USER_ID, DATE, DATE))
+                .willReturn(List.of(timed, noTime));
+        given(loadSchedulePort.findRepeatingSchedules(USER_ID))
+                .willReturn(List.of());
+
+        List<ScheduleView> result = scheduleService.getSchedulesByDate(USER_ID, DATE);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(3L);
+        assertThat(result.get(1).getId()).isEqualTo(1L);
+    }
 }

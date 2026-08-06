@@ -27,6 +27,7 @@ public enum ErrorCode {
     INVALID_TIME_RANGE(HttpStatus.BAD_REQUEST, "S003", "시작 시간이 종료 시간보다 늦을 수 없습니다."),
     SCHEDULE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "S004", "해당 일정에 접근 권한이 없습니다."),
     RECURRING_SCHEDULE_TOGGLE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "S005", "반복 일정은 날짜를 지정하여 완료 처리해야 합니다."),
+    SCHEDULE_TIME_PARTIALLY_SET(HttpStatus.BAD_REQUEST, "S006", "시작 시간과 종료 시간은 함께 입력하거나 함께 비워야 합니다."),
 
     // Category
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CT001", "카테고리를 찾을 수 없습니다."),
