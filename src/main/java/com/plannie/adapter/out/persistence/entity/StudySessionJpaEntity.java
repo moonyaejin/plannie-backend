@@ -26,6 +26,9 @@ public class StudySessionJpaEntity {
     @Column(name = "category_id", nullable = false)
     private Long categoryId;
 
+    @Column(name = "schedule_id")
+    private Long scheduleId;
+
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
 
@@ -36,12 +39,13 @@ public class StudySessionJpaEntity {
     private Integer durationMinutes;
 
     @Builder
-    public StudySessionJpaEntity(Long id, Long userId, Long categoryId,
+    public StudySessionJpaEntity(Long id, Long userId, Long categoryId, Long scheduleId,
                                   LocalDateTime startedAt, LocalDateTime endedAt,
                                   Integer durationMinutes) {
         this.id = id;
         this.userId = userId;
         this.categoryId = categoryId;
+        this.scheduleId = scheduleId;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.durationMinutes = durationMinutes;

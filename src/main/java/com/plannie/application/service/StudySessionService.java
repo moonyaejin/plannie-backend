@@ -2,10 +2,12 @@ package com.plannie.application.service;
 
 import com.plannie.application.port.in.StudySessionUseCase;
 import com.plannie.application.port.out.LoadCategoryPort;
+import com.plannie.application.port.out.LoadSchedulePort;
 import com.plannie.application.port.out.StudySessionPort;
 import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.schedule.Category;
+import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.studysession.StudySession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,12 +28,15 @@ public class StudySessionService implements StudySessionUseCase {
 
     private final StudySessionPort studySessionPort;
     private final LoadCategoryPort loadCategoryPort;
+    private final LoadSchedulePort loadSchedulePort;
 
     @Override
     @Transactional
     public StudySession start(StartCommand command) {
+        Long resolvedCategoryId = resolveCategoryId(command);
+
         // 카테고리 존재(기본 카테고리 포함) + 권한 확인
-        loadCategoryPort.findByIdAndUserIdOrDefault(command.categoryId(), command.userId())
+        loadCategoryPort.findByIdAndUserIdOrDefault(resolvedCategoryId, command.userId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         // 이미 진행 중인 세션 확인
@@ -41,11 +46,32 @@ public class StudySessionService implements StudySessionUseCase {
 
         StudySession session = StudySession.builder()
                 .userId(command.userId())
-                .categoryId(command.categoryId())
+                .categoryId(resolvedCategoryId)
+                .scheduleId(command.scheduleId())
                 .startedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")))
                 .build();
 
         return studySessionPort.save(session);
+    }
+
+    // scheduleId가 있으면 그 일정의 카테고리를 그대로 쓰고(클라이언트가 보낸 categoryId는 무시),
+    // 없으면 클라이언트가 보낸 categoryId를 그대로 사용
+    private Long resolveCategoryId(StartCommand command) {
+        if (command.scheduleId() == null) {
+            if (command.categoryId() == null) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT);
+            }
+            return command.categoryId();
+        }
+
+        Schedule schedule = loadSchedulePort.findByIdAndUserId(command.scheduleId(), command.userId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        if (schedule.getCategoryId() == null) {
+            throw new BusinessException(ErrorCode.SCHEDULE_CATEGORY_REQUIRED);
+        }
+
+        return schedule.getCategoryId();
     }
 
     @Override
@@ -97,6 +123,31 @@ public class StudySessionService implements StudySessionUseCase {
                     String name = category != null ? category.getName() : "삭제된 카테고리";
                     String color = category != null ? category.getColor() : null;
                     return new CategorySummary(categoryId, name, color, totalMinutes, group.size());
+                })
+                .sorted((a, b) -> b.totalMinutes() - a.totalMinutes())
+                .toList();
+    }
+
+    @Override
+    public List<ScheduleSummary> getScheduleSummary(Long userId, LocalDate startDate, LocalDate endDate) {
+        List<StudySession> sessions = studySessionPort.findByUserIdAndDateRange(userId, startDate, endDate);
+
+        // 일정 단위로 재기록된(scheduleId가 있는) 세션만 대상 — 카테고리 직접 타이머는 제외
+        Map<Long, List<StudySession>> grouped = sessions.stream()
+                .filter(s -> !s.isActive() && s.getScheduleId() != null)
+                .collect(Collectors.groupingBy(StudySession::getScheduleId));
+
+        return grouped.entrySet().stream()
+                .map(entry -> {
+                    Long scheduleId = entry.getKey();
+                    List<StudySession> group = entry.getValue();
+                    int totalMinutes = group.stream()
+                            .mapToInt(s -> s.getDurationMinutes() != null ? s.getDurationMinutes() : 0)
+                            .sum();
+                    Optional<Schedule> schedule = loadSchedulePort.findByIdAndUserId(scheduleId, userId);
+                    String title = schedule.map(Schedule::getTitle).orElse("삭제된 일정");
+                    Long categoryId = schedule.map(Schedule::getCategoryId).orElse(null);
+                    return new ScheduleSummary(scheduleId, title, categoryId, totalMinutes, group.size());
                 })
                 .sorted((a, b) -> b.totalMinutes() - a.totalMinutes())
                 .toList();
