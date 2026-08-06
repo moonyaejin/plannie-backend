@@ -18,12 +18,26 @@ public interface StudySessionUseCase {
 
     List<CategorySummary> getSummary(Long userId, LocalDate startDate, LocalDate endDate);
 
-    record StartCommand(Long userId, Long categoryId) {}
+    List<ScheduleSummary> getScheduleSummary(Long userId, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * @param categoryId scheduleId가 없을 때 필수 (카테고리 직접 타이머)
+     * @param scheduleId 있으면 categoryId는 무시되고 해당 일정의 카테고리로 자동 설정됨 (일정 단위 타이머)
+     */
+    record StartCommand(Long userId, Long categoryId, Long scheduleId) {}
 
     record CategorySummary(
             Long categoryId,
             String categoryName,
             String categoryColor,
+            int totalMinutes,
+            int sessionCount
+    ) {}
+
+    record ScheduleSummary(
+            Long scheduleId,
+            String scheduleTitle,
+            Long categoryId,
             int totalMinutes,
             int sessionCount
     ) {}

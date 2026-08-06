@@ -31,6 +31,7 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
         return toDomain(repository.save(StudySessionJpaEntity.builder()
                 .userId(session.getUserId())
                 .categoryId(session.getCategoryId())
+                .scheduleId(session.getScheduleId())
                 .startedAt(session.getStartedAt())
                 .build()));
     }
@@ -74,6 +75,7 @@ public class StudySessionPersistenceAdapter implements StudySessionPort {
                 .id(entity.getId())
                 .userId(entity.getUserId())
                 .categoryId(entity.getCategoryId())
+                .scheduleId(entity.getScheduleId())
                 .startedAt(entity.getStartedAt())
                 .endedAt(entity.getEndedAt())
                 .durationMinutes(entity.getDurationMinutes())

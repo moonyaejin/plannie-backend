@@ -2,10 +2,13 @@ package com.plannie.application.service;
 
 import com.plannie.application.port.in.StudySessionUseCase;
 import com.plannie.application.port.out.LoadCategoryPort;
+import com.plannie.application.port.out.LoadSchedulePort;
 import com.plannie.application.port.out.StudySessionPort;
 import com.plannie.common.exception.BusinessException;
 import com.plannie.common.exception.ErrorCode;
 import com.plannie.domain.schedule.Category;
+import com.plannie.domain.schedule.RepeatRule;
+import com.plannie.domain.schedule.Schedule;
 import com.plannie.domain.studysession.StudySession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -32,13 +35,24 @@ class StudySessionServiceTest {
 
     @Mock private StudySessionPort studySessionPort;
     @Mock private LoadCategoryPort loadCategoryPort;
+    @Mock private LoadSchedulePort loadSchedulePort;
     @InjectMocks private StudySessionService studySessionService;
 
     private static final Long USER_ID = 1L;
     private static final Long CATEGORY_ID = 10L;
+    private static final Long SCHEDULE_ID = 100L;
 
     private Category category() {
         return Category.builder().id(CATEGORY_ID).userId(USER_ID).name("수학").color("#FF0000").build();
+    }
+
+    private Schedule scheduleWithCategory() {
+        return Schedule.builder()
+                .id(SCHEDULE_ID).userId(USER_ID).title("기출 1회")
+                .startDate(LocalDate.now()).endDate(LocalDate.now())
+                .categoryId(CATEGORY_ID)
+                .completed(false).repeatRule(RepeatRule.none())
+                .build();
     }
 
     private StudySession activeSession() {
@@ -64,7 +78,7 @@ class StudySessionServiceTest {
         given(studySessionPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
         StudySession result = studySessionService.start(
-                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID)
+                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID, null)
         );
 
         assertThat(result.getCategoryId()).isEqualTo(CATEGORY_ID);
@@ -78,7 +92,7 @@ class StudySessionServiceTest {
         given(loadCategoryPort.findByIdAndUserIdOrDefault(CATEGORY_ID, USER_ID)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> studySessionService.start(
-                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID)
+                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID, null)
         ))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
@@ -94,7 +108,7 @@ class StudySessionServiceTest {
         given(studySessionPort.save(any())).willAnswer(inv -> inv.getArgument(0));
 
         StudySession result = studySessionService.start(
-                new StudySessionUseCase.StartCommand(USER_ID, 99L)
+                new StudySessionUseCase.StartCommand(USER_ID, 99L, null)
         );
 
         assertThat(result.getCategoryId()).isEqualTo(99L);
@@ -108,7 +122,7 @@ class StudySessionServiceTest {
         given(studySessionPort.findActiveByUserId(USER_ID)).willReturn(Optional.of(activeSession()));
 
         assertThatThrownBy(() -> studySessionService.start(
-                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID)
+                new StudySessionUseCase.StartCommand(USER_ID, CATEGORY_ID, null)
         ))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
@@ -168,5 +182,81 @@ class StudySessionServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result.get(0).categoryName()).isEqualTo("수학");
         assertThat(result.get(1).categoryName()).isEqualTo("영어");
+    }
+
+    // ==================== 일정 단위 타이머 ====================
+
+    @Test
+    @DisplayName("scheduleId로 시작하면 그 일정의 카테고리가 세션에 자동으로 설정된다")
+    void 일정단위_타이머_시작_성공() {
+        given(loadSchedulePort.findByIdAndUserId(SCHEDULE_ID, USER_ID)).willReturn(Optional.of(scheduleWithCategory()));
+        given(loadCategoryPort.findByIdAndUserIdOrDefault(CATEGORY_ID, USER_ID)).willReturn(Optional.of(category()));
+        given(studySessionPort.findActiveByUserId(USER_ID)).willReturn(Optional.empty());
+        given(studySessionPort.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        StudySession result = studySessionService.start(
+                new StudySessionUseCase.StartCommand(USER_ID, null, SCHEDULE_ID)
+        );
+
+        assertThat(result.getCategoryId()).isEqualTo(CATEGORY_ID);
+        assertThat(result.getScheduleId()).isEqualTo(SCHEDULE_ID);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 scheduleId로 시작하면 SCHEDULE_NOT_FOUND 예외 발생")
+    void 없는_일정으로_시작_예외() {
+        given(loadSchedulePort.findByIdAndUserId(SCHEDULE_ID, USER_ID)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> studySessionService.start(
+                new StudySessionUseCase.StartCommand(USER_ID, null, SCHEDULE_ID)
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.SCHEDULE_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("카테고리가 없는 일정으로 시작하면 SCHEDULE_CATEGORY_REQUIRED 예외 발생")
+    void 카테고리없는_일정으로_시작_예외() {
+        Schedule noCategory = Schedule.builder()
+                .id(SCHEDULE_ID).userId(USER_ID).title("기출 1회")
+                .startDate(LocalDate.now()).endDate(LocalDate.now())
+                .completed(false).repeatRule(RepeatRule.none())
+                .build();
+        given(loadSchedulePort.findByIdAndUserId(SCHEDULE_ID, USER_ID)).willReturn(Optional.of(noCategory));
+
+        assertThatThrownBy(() -> studySessionService.start(
+                new StudySessionUseCase.StartCommand(USER_ID, null, SCHEDULE_ID)
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.SCHEDULE_CATEGORY_REQUIRED);
+    }
+
+    // ==================== 일정별 요약 ====================
+
+    @Test
+    @DisplayName("일정별 요약은 scheduleId가 있는 세션만 집계하고 카테고리 직접 타이머는 제외한다")
+    void 일정별_요약() {
+        StudySession scheduleSession = StudySession.builder()
+                .id(1L).userId(USER_ID).categoryId(CATEGORY_ID).scheduleId(SCHEDULE_ID)
+                .startedAt(LocalDateTime.now().minusHours(1)).endedAt(LocalDateTime.now())
+                .durationMinutes(30).build();
+        StudySession categoryDirectSession = StudySession.builder()
+                .id(2L).userId(USER_ID).categoryId(CATEGORY_ID)
+                .startedAt(LocalDateTime.now().minusHours(2)).endedAt(LocalDateTime.now().minusHours(1))
+                .durationMinutes(45).build();
+
+        given(studySessionPort.findByUserIdAndDateRange(any(), any(), any()))
+                .willReturn(List.of(scheduleSession, categoryDirectSession));
+        given(loadSchedulePort.findByIdAndUserId(SCHEDULE_ID, USER_ID)).willReturn(Optional.of(scheduleWithCategory()));
+
+        List<StudySessionUseCase.ScheduleSummary> result =
+                studySessionService.getScheduleSummary(USER_ID, LocalDate.now(), LocalDate.now());
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).scheduleId()).isEqualTo(SCHEDULE_ID);
+        assertThat(result.get(0).scheduleTitle()).isEqualTo("기출 1회");
+        assertThat(result.get(0).totalMinutes()).isEqualTo(30);
     }
 }

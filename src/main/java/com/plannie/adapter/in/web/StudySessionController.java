@@ -4,6 +4,7 @@ import com.plannie.adapter.in.web.dto.StudySessionRequest;
 import com.plannie.adapter.in.web.dto.StudySessionResponse;
 import com.plannie.application.port.in.StudySessionUseCase;
 import com.plannie.application.port.in.StudySessionUseCase.CategorySummary;
+import com.plannie.application.port.in.StudySessionUseCase.ScheduleSummary;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,7 +34,9 @@ public class StudySessionController {
             @Valid @RequestBody StudySessionRequest request) {
 
         return StudySessionResponse.from(
-                studySessionUseCase.start(new StudySessionUseCase.StartCommand(userId, request.categoryId()))
+                studySessionUseCase.start(
+                        new StudySessionUseCase.StartCommand(userId, request.categoryId(), request.scheduleId())
+                )
         );
     }
 
@@ -72,5 +75,15 @@ public class StudySessionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
         return studySessionUseCase.getSummary(userId, startDate, endDate);
+    }
+
+    @Operation(summary = "기간별 일정별 요약", description = "일정 단위로 잰 타이머만 집계합니다 (카테고리 직접 타이머는 제외)")
+    @GetMapping("/schedule-summary")
+    public List<ScheduleSummary> getScheduleSummary(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        return studySessionUseCase.getScheduleSummary(userId, startDate, endDate);
     }
 }

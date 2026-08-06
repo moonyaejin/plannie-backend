@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public record StudySessionResponse(
         Long id,
         Long categoryId,
+        Long scheduleId,
         LocalDateTime startedAt,
         LocalDateTime endedAt,
         Integer durationMinutes,
@@ -16,6 +17,7 @@ public record StudySessionResponse(
         return new StudySessionResponse(
                 session.getId(),
                 session.getCategoryId(),
+                session.getScheduleId(),
                 session.getStartedAt(),
                 session.getEndedAt(),
                 session.getDurationMinutes(),
