@@ -55,8 +55,12 @@ public class Schedule {
         if (!this.startDate.equals(other.startDate)) {
             return false;
         }
+        if (this.startTime == null || this.endTime == null
+                || other.startTime == null || other.endTime == null) {
+            return false;
+        }
 
-        return !(this.endTime.isBefore(other.startTime) || 
+        return !(this.endTime.isBefore(other.startTime) ||
                  this.startTime.isAfter(other.endTime));
     }
 
@@ -102,6 +106,9 @@ public class Schedule {
      * 유효한 시간 범위인지 검증
      */
     public boolean isValidTimeRange() {
+        if (startTime == null || endTime == null) {
+            return true;
+        }
         return startTime.isBefore(endTime) || startTime.equals(endTime);
     }
 }

@@ -38,12 +38,10 @@ public record ScheduleRequest(
 
         @Schema(type = "string", pattern = "HH:mm:ss", example = "14:00:00")
         @JsonFormat(pattern = "HH:mm:ss")
-        @NotNull(message = "시작 시간은 필수입니다")
-        LocalTime startTime,
+        LocalTime startTime,  // null 가능 (시간 없는 일정) — startTime/endTime은 함께 있거나 함께 없어야 함
 
         @Schema(type = "string", pattern = "HH:mm:ss", example = "14:00:00")
         @JsonFormat(pattern = "HH:mm:ss")
-        @NotNull(message = "종료 시간은 필수입니다")
         LocalTime endTime,
 
         Long categoryId,  // null 가능 (기본 카테고리 사용)

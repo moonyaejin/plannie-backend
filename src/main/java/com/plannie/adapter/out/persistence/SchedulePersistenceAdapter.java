@@ -144,8 +144,8 @@ public class SchedulePersistenceAdapter implements LoadSchedulePort, SaveSchedul
                     schedule.getMemo(),
                     schedule.getStartDate(),
                     schedule.getEndDate(),
-                    schedule.getStartTime() != null ? schedule.getStartTime() : LocalTime.of(0, 0),
-                    schedule.getEndTime() != null ? schedule.getEndTime() : LocalTime.of(23, 59),
+                    schedule.getStartTime(),
+                    schedule.getEndTime(),
                     schedule.getCategoryId(),
                     schedule.getReminderMinutes()
             );
